@@ -6,8 +6,8 @@
 
 **Color It Daily** is a website dedicated to providing high-quality, printable coloring pages.
 
-* **Promise**: Beautiful, optimized coloring pages available always for free.
-* **Cadence**: A brand new, unique page is generated, vetted, and added to the collection every single day.
+* **Promise:** Beautiful, optimized coloring pages available always for free.
+* **Cadence:** A brand new, unique page is generated, vetted, and added to the collection every single day.
 * **Primary Audience (Current):** Children (Ages 3–10). Content must be simple, engaging, and easy to color.
 * **Secondary Audience (Future Goal):** Adults/General. More complex styles (Mandalas, Scenery) will be introduced later.
 * **Safety Mandate:** Regardless of the target audience complexity, **100% of content must be strictly child-safe (G-Rated).**
@@ -18,8 +18,8 @@
 
 The system is designed as a **Sequential Agent** (The Publisher) that orchestrates two primary components:
 
-1. **The Editorial Team:** Determines *what* to create based on history, trends, and **child-appropriate themes**.
-2. **The Studio Loop:** Generates, refines, and reviews the asset until it meets quality standards suitable for print.
+1. **The Editorial Team (Creative Director):** Determines *what* to create using a rotation of subjects and composition strategies.
+2. **The Studio Loop:** A feedback-driven loop where a **Stylist** and **Critic** iterate until the asset meets specific printability standards.
 
 ---
 
@@ -31,29 +31,35 @@ The system is designed as a **Sequential Agent** (The Publisher) that orchestrat
 * **Role:** Manages the handoff between Ideation and Production.
 * **Logic:** Executes `ConceptAgent`  passes context  executes `StudioLoop`.
 
-### B. Agent 1: The Creative Director (The "Fun" Filter)
+### B. Agent 1: The Creative Director (The Strategist)
 
 * **ADK Type:** `LlmAgent`
-* **Role:** Brainstorms unique concepts that fit the season and appeal to children.
-* **Input:** Current date, access to history database.
+* **Role:** Brainstorms unique concepts by rotating both **Subject Categories** and **Composition Strategies** to ensure gallery variety.
+* **Input:** JSON Payload `{"current_date": "YYYY-MM-DD"}`
 * **Directives:**
-* Prioritize whimsical, animals, fantasy, and simple seasonal themes.
-* *Future Capability:* Can toggle "complexity_level" for adult audiences, but defaults to "kids".
+   * **Analyze Context:** Check calendar for holidays/seasons.
+   * **Rotate Category:** Switch between Animals, Fantasy, Jobs, Vehicles, Nature, Daily Life.
+* **Rotate Composition:** Switch between **Type A (Sticker)**, **Type B (Scene)**, **Type C (Collection)**, and **Type D (Action)**.
+* **De-duplication:** Ensure no semantic overlap with the last 30 days of content.
+
 
 * **Tools:**
-* `search_past_concepts(query_embedding)`: Connects to PostgreSQL. Uses `pgvector` to find semantically similar past pages to avoid duplicates.
-* `get_calendar_events()`: Returns current season, nearby holidays, and "National Day of..." data.
+* `get_calendar_events(target_date_str)`: Returns holidays and observances.
+* `get_recent_history(limit)`: Checks the last 3 published pages to enforce variety.
+* `search_past_concepts(concept_description)`: Vector search (Vertex AI) to find semantically identical past pages.
+
 
 * **Output:** `ConceptJSON`
+
 ```json
 {
-  "title": "Winter Fox in Scarf",
-  "description": "A cute fox sitting in snow wearing a knitted scarf.",
-  "visual_tags": ["fox", "winter", "snow", "scarf", "nature"],
+  "title": "Space Explorer Kit",
+  "description": "A collection of space items: a helmet, a rocket, a planet, and a star.",
+  "visual_tags": ["space", "helmet", "collection", "pattern"],
   "target_audience": "child",
   "complexity": "low",
-  "mood": "Whimsical",
-  "avoid_elements": ["complex background", "shading", "scary features"]
+  "mood": "Fun",
+  "avoid_elements": ["overlapping items", "tiny details"]
 }
 
 ```
@@ -68,13 +74,19 @@ The system is designed as a **Sequential Agent** (The Publisher) that orchestrat
 #### Sub-Agent C1: The Stylist (Prompt Engineer)
 
 * **ADK Type:** `LlmAgent`
-* **Role:** Translates the `ConceptJSON` into a technical prompt optimized for "Nano Banana Pro."
+* **Role:** Transforms the `ConceptJSON` into a descriptive, natural language prompt strictly adhering to a technical **Micro-Style**.
 * **Input:** `ConceptJSON` + (Optional) `CritiqueFeedback` from previous failed attempt.
 * **Logic:**
-* Selects a specific style collection based on `target_audience`.
-* *If Kid:* Uses "Thick Line Chibi", "Bold Cartoon", "Simple Sticker".
-* *If Adult (Future):* Uses "Intricate Mandala", "Fine Line Realism".
+1. **Audience Check:** Identifies if target is "child" or "adult".
+2. **Micro-Style Selection:** Selects the archetype based on `mood` and `visual_tags`:
+* *Sticker / Character Focus* (Trigger: Single subject)
+* *Whimsical Storybook* (Trigger: Nature/Calm)
+* *Kawaii Pop* (Trigger: Cute/Playful)
+* *Dynamic Comic* (Trigger: Action/Sports)
+* *Icon Scatter* (Trigger: Collection/Pattern)
+* *Simple Mosaic* (Trigger: Abstract/Symmetry)
 
+3. **Prompt Construction:** Builds a "Hybrid Narrative" prompt: `[Medium Definition] + [Subject Action] + [Artistic Constraints]`.
 
 * **Output:** `positive_prompt`, `negative_prompt`.
 
@@ -85,9 +97,12 @@ The system is designed as a **Sequential Agent** (The Publisher) that orchestrat
 * **Input:** The optimized image file + Original Description.
 * **System Instruction:** "You are a strict art critic for **children's coloring pages**.
 1. **Safety Check (Zero Tolerance):** Reject if content is scary, suggestive, or ambiguous.
-2. **Quality Check:** Reject if lines are broken/faint or image contains grayscale shading (must be pure black/white).
-3. **Complexity Check:** If `target_audience='child'`, reject if the image is too cluttered or has tiny details impossible to color with crayons."
+2. **Quality Check:** Reject if lines are broken/faint or image contains grayscale shading.
+3. **Composition Check:**
+* If 'Sticker': Reject if background is cluttered.
+* If 'Collection': Reject if items overlap or touch.
 
+4. **Complexity Check:** Reject if details are too small for crayons."
 
 * **Output:** `Status` (PASS/REJECT), `Feedback`.
 
@@ -98,7 +113,7 @@ The system is designed as a **Sequential Agent** (The Publisher) that orchestrat
 ### Database & History (PostgreSQL)
 
 * **Vector Search:** Do not rely on keyword tags. Implement `pgvector`.
-* **Mechanism:** When the Creative Director proposes "Snowman," the tool converts "Snowman" to an embedding, queries the DB, and if high cosine similarity (>0.85) is found in the last 30 days, the Agent knows to pick a different topic.
+* **Mechanism:** When the Creative Director proposes "Snowman," the tool converts "Snowman" to an embedding, queries the DB. If high cosine similarity (>0.85) is found in the last 30 days, the Agent must pivot to a different topic.
 
 ### Image Processing Pipeline (Python Tools)
 
@@ -108,9 +123,8 @@ These should be wrapped as ADK `FunctionTools`.
 * Wraps the **Nano Banana Pro** API.
 * Returns a temporary file path.
 
-
 2. **Optimization Tool (The "Darkroom"):**
-* **Upscaling:** Use **Real-ESRGAN** (specifically `realesrgan-x4plus-anime`). This model is critical for keeping black lines sharp and not blurry.
+* **Upscaling:** Use **Real-ESRGAN** (specifically `realesrgan-x4plus-anime`). This model is critical for preserving sharp vector-like lines.
 * **Sizing:** Resize/Crop to **3300px x 2550px** (Landscape) or **2550px x 3300px** (Portrait).
 * **Color Profile:** Convert to Grayscale or CMYK to ensure "Rich Black" doesn't ruin home printing.
 
@@ -119,29 +133,27 @@ These should be wrapped as ADK `FunctionTools`.
 ## 3. The Execution Flow
 
 1. **Trigger:** Daily scheduled job.
-2. **Creative Director:** Checks date (Dec 20th) -> Checks History -> Proposes "Reindeer playing hockey." (Target: Child).
+2. **Creative Director:**
+* Checks date (Dec 20th).
+* History Check: Yesterday was "Scene/Nature".
+* **Pivot:** Selects **Category: Daily Life** and **Composition: Collection**.
+* Proposes: "Winter Clothing Kit" (Items: Mittens, Hat, Scarf, Boots).
+
+
 3. **Studio Loop (Attempt 1):**
-* **Stylist:** Writes prompt: "thick line art, cute reindeer, hockey stick, ice rink, minimal background, coloring page style."
+* **Stylist:** Detects tag "Collection". Selects **Micro-Style 5 (Icon Scatter)**.
+   * *Prompt:* "A fun 'doodle sheet' coloring page... distinct items scattered evenly... no overlapping."
 * **Generator:** Creates Image A.
 * **Optimizer:** Upscales Image A.
-* **Critic:** Reviews Image A. *Result: REJECT. Feedback: "The hockey stick merges with the leg. Lines are too thin for crayon use."*
+* **Critic:** Reviews Image A.
+   * *Result:* **REJECT**.
+   * *Feedback:* "The scarf and the hat are touching in the center. Items must be isolated."
 
 4. **Studio Loop (Attempt 2):**
-* **Stylist:** Receives feedback. Rewrites prompt: "thick bold lines, separated limbs, distinct hockey stick, simple outlines..."
+* **Stylist:** Receives feedback. Rewrites prompt: "...ensure plenty of whitespace between the scarf and hat. Items must be completely separated..."
 * **Generator:** Creates Image B.
 * **Optimizer:** Upscales Image B.
-* **Critic:** Reviews Image B. *Result: PASS.*
+* **Critic:** Reviews Image B.
+   * *Result:* **PASS**.
 
-
-5. **Publisher:** Saves Image B to GCS bucket, updates History (database), setup featured image, invalidate website cache (Next.js)
-
----
-
-## 4. Key Recommendations for Improvement
-
-* **Feedback Injection:** Ensure the `LoopAgent` passes the Critic's text feedback *back* into the Stylist's context window for the next turn. Without this, the Stylist is guessing blindly on the retry.
-* **Style Consistency & Difficulty Mapping:**
-* Map styles not just to Moods, but to **Difficulty Levels**:
-* *Level 1 (Kids/Current):* Thick Line Cartoon, Simple Shapes.
-* *Level 2 (Older Kids):* Scene with Background.
-* *Level 3 (Adult/Future):* Mandala/Geometric, Fine Detail.
+5. **Publisher:** Saves Image B to GCS bucket, updates History (database), sets up featured image, invalidates website cache (Next.js).

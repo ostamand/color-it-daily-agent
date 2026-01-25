@@ -1,0 +1,27 @@
+I want to start a new project. 
+
+It is for my Color It Daily website. 
+
+Right now, I finetuned a diffusion model to generate coloring pages for kids. I generate a bunch in batch and they get featured daily one at a time.
+
+Things have been evolving and I feel I don't need to finetune a diffusion model anymore (I am thinking of leveraging Nano Banana Pro). 
+
+Therefore, I want to automate my daily generation flow. I want to rely on a custom multi-agent built with Google ADK. 
+
+I need the following functionality. 
+
+- First, need to define what will be the high level idea for the coloring page to be generated (description, and a series of tags describing the content). 
+    This should consider coloring pages previously published to make sure new coloring pages are unique. 
+    I would also like to consider the current date to influence the theme. 
+    For example, during december we should generate holidays themed coloring page, etc. 
+    I always themes that are  inclusive but I would like the generation to feel grounded throughout the year
+- Second, with the description and the tafs we need to create a detailed text prompt (optimized for nano banana) to generate exactly the style of the image we want. 
+    I will provide a couple of different style description that can be used and that should be adapted to the specific description. 
+    Each style will correspond to a collection name and each day it should be randomly selected. 
+    Very important that the style description is detailed enough to generate consistent art, it's also ok that the description be adapted to produce the desired effect 
+- Third we now need to generate the image using Nano Banana Pro and the detailed text prompt a tool is then used to upscale (if possible) and optimize the image so that it can be printed on landscape paper 2550px x 3300 (I believe).
+- Forth, once this content is generated we need to make sure it is high quality before publishing. If not we need to go back to step #3. 
+
+Can you suggest a multi-agent flow with Google ADK. Also suggest a list of tools I will need. 
+
+Ask clarifying questions if needed and let me know if I may have forgotten something to consider. 
