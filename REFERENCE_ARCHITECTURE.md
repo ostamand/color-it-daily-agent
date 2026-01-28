@@ -39,14 +39,14 @@ The system is designed as a **Sequential Agent** (The Publisher) that orchestrat
 * **Directives:**
    * **Analyze Context:** Check calendar for holidays/seasons.
    * **Rotate Category:** Switch between Animals, Fantasy, Jobs, Vehicles, Nature, Daily Life.
-* **Rotate Composition:** Switch between **Type A (Sticker)**, **Type B (Scene)**, **Type C (Collection)**, and **Type D (Action)**.
-* **De-duplication:** Ensure no semantic overlap with the last 30 days of content.
+   * **Rotate Composition:** Switch between **Type A (Character Sticker)**, **Type B (Full Scene)**, **Type C (Collection)**, and **Type D (Action Shot)**.
+   * **De-duplication:** Ensure no semantic overlap with past content.
 
 
 * **Tools:**
-* `get_calendar_events(target_date_str)`: Returns holidays and observances.
-* `get_recent_history(limit)`: Checks the last 3 published pages to enforce variety.
-* `search_past_concepts(concept_description)`: Vector search (Vertex AI) to find semantically identical past pages.
+    * `get_calendar_events(target_date_str)`: Returns season, holidays, and fun observances to ensure timeliness.
+    * `get_recent_history(limit)`: Checks the last 3 published pages to enforce variety.
+    * `search_past_concepts(concept_description)`: Vector search (Firestore) to find semantically identical past pages.
 
 
 * **Output:** `ConceptJSON`
@@ -70,31 +70,63 @@ The system is designed as a **Sequential Agent** (The Publisher) that orchestrat
 * **Role:** Iterates on the image generation until quality standards are met.
 * **Max Iterations:** 3 (to prevent infinite costs).
 * **Loop Condition:** Continues while `CriticStatus == "REJECT"`.
+* **Execution Chain:** `Stylist` -> `Generator` -> `Optimizer` -> `Critic`.
 
 #### Sub-Agent C1: The Stylist (Prompt Engineer)
 
 * **ADK Type:** `LlmAgent`
 * **Role:** Transforms the `ConceptJSON` into a descriptive, natural language prompt strictly adhering to a technical **Micro-Style**.
 * **Input:** `ConceptJSON` + (Optional) `CritiqueFeedback` from previous failed attempt.
-* **Logic:**
-1. **Audience Check:** Identifies if target is "child" or "adult".
-2. **Micro-Style Selection:** Selects the archetype based on `mood` and `visual_tags`:
-* *Sticker / Character Focus* (Trigger: Single subject)
-* *Whimsical Storybook* (Trigger: Nature/Calm)
-* *Kawaii Pop* (Trigger: Cute/Playful)
-* *Dynamic Comic* (Trigger: Action/Sports)
-* *Icon Scatter* (Trigger: Collection/Pattern)
-* *Simple Mosaic* (Trigger: Abstract/Symmetry)
+* **Tools:** None.
+* **Output:** JSON Payload
+  ```json
+  {
+    "title": "...",
+    "description": "...",
+    "visual_tags": [...],
+    "mood": "...",
+    "target_audience": "...",
+    "positive_prompt": "Detailed natural language description...",
+    "negative_prompt": "Forbidden elements..."
+  }
+  ```
 
-3. **Prompt Construction:** Builds a "Hybrid Narrative" prompt: `[Medium Definition] + [Subject Action] + [Artistic Constraints]`.
+#### Sub-Agent C2: The Generator (Artist)
 
-* **Output:** `positive_prompt`, `negative_prompt`.
+* **ADK Type:** `LlmAgent`
+* **Role:** Adapts the prompt and executes the generation tool.
+* **Input:** JSON Payload from Stylist (containing `positive_prompt` and `negative_prompt`).
+* **Tools:**
+    * `generate_image(positive_prompt, negative_prompt)`: Wraps **Nano Banana Pro** API. Returns a temporary file path.
+* **Output:** JSON Payload
+  ```json
+  {
+    "title": "...",
+    "description": "...",
+    "visual_tags": [...],
+    "mood": "...",
+    "target_audience": "...",
+    "positive_prompt": "...",
+    "negative_prompt": "...",
+    "raw_image_path": "gs://..."
+  }
+  ```
 
-#### Sub-Agent C2: The Critic (Quality & Safety Assurance)
+#### Sub-Agent C3: The Optimizer (Darkroom Technician)
+
+* **ADK Type:** `LlmAgent`
+* **Role:** Processes the raw image for high-quality printing.
+* **Input:** File Path from Generator.
+* **Tools:**
+    * `optimize_image(image_path)`: Wraps **Real-ESRGAN** (specifically `realesrgan-x4plus-anime`) and performs resizing/cropping to **3300px x 2550px**. Returns path to optimized image.
+* **Output:** File Path (String) e.g., `"/tmp/optimized_image_123.png"`
+
+#### Sub-Agent C4: The Critic (Quality & Safety Assurance)
 
 * **ADK Type:** `LlmAgent` (Multimodal)
 * **Role:** "Visually" inspects the final output for printability and safety.
-* **Input:** The optimized image file + Original Description.
+* **Input:** The optimized image file path + Original Description (from context).
+* **Tools:** None (Relies on Multimodal Vision Capabilities).
 * **System Instruction:** "You are a strict art critic for **children's coloring pages**.
 1. **Safety Check (Zero Tolerance):** Reject if content is scary, suggestive, or ambiguous.
 2. **Quality Check:** Reject if lines are broken/faint or image contains grayscale shading.
@@ -104,7 +136,13 @@ The system is designed as a **Sequential Agent** (The Publisher) that orchestrat
 
 4. **Complexity Check:** Reject if details are too small for crayons."
 
-* **Output:** `Status` (PASS/REJECT), `Feedback`.
+* **Output:** JSON Payload
+  ```json
+  {
+    "status": "PASS" | "REJECT",
+    "feedback": "Reason for rejection or praise."
+  }
+  ```
 
 ---
 
