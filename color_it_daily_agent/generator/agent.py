@@ -8,6 +8,7 @@ from google.adk.runners import InMemoryRunner
 
 from .instructions import INSTRUCTIONS_V1
 from .tools.generate import generate_image
+from .tools.optimize import optimize_image
 from ..app_configs import configs
 
 # Define the Generator agent
@@ -15,7 +16,7 @@ generator = LlmAgent(
     name="Generator",
     instruction=INSTRUCTIONS_V1,
     model=Gemini(model=configs.llm_model),
-    tools=[generate_image],
+    tools=[generate_image, optimize_image],
 )
 
 # python -m  color_it_daily_agent.generator.agent

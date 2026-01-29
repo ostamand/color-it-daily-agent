@@ -70,7 +70,7 @@ The system is designed as a **Sequential Agent** (The Publisher) that orchestrat
 * **Role:** Iterates on the image generation until quality standards are met.
 * **Max Iterations:** 3 (to prevent infinite costs).
 * **Loop Condition:** Continues while `CriticStatus == "REJECT"`.
-* **Execution Chain:** `Stylist` -> `Generator` -> `Optimizer` -> `Critic`.
+* **Execution Chain:** `Stylist` -> `Generator` -> `Critic`.
 
 #### Sub-Agent C1: The Stylist (Prompt Engineer)
 
@@ -94,10 +94,11 @@ The system is designed as a **Sequential Agent** (The Publisher) that orchestrat
 #### Sub-Agent C2: The Generator (Artist)
 
 * **ADK Type:** `LlmAgent`
-* **Role:** Adapts the prompt and executes the generation tool.
+* **Role:** Adapts the prompt, executes the generation tool, and subsequently optimizes the result for high-quality printing.
 * **Input:** JSON Payload from Stylist (containing `positive_prompt` and `negative_prompt`).
 * **Tools:**
     * `generate_image(positive_prompt, negative_prompt)`: Wraps **Nano Banana Pro** API. Returns a temporary file path.
+    * `optimize_image(image_path)`: Uses **Potrace** (vectorization) and **CairoSVG** to render a high-resolution, crisp version at **2550px x 3300px** (Portrait).
 * **Output:** JSON Payload
   ```json
   {
@@ -108,20 +109,12 @@ The system is designed as a **Sequential Agent** (The Publisher) that orchestrat
     "target_audience": "...",
     "positive_prompt": "...",
     "negative_prompt": "...",
-    "raw_image_path": "gs://..."
+    "raw_image_path": "gs://bucket/raw/abc.png",
+    "optimized_image_path": "gs://bucket/optimized/abc.png"
   }
   ```
 
-#### Sub-Agent C3: The Optimizer (Darkroom Technician)
-
-* **ADK Type:** `LlmAgent`
-* **Role:** Processes the raw image for high-quality printing.
-* **Input:** File Path from Generator.
-* **Tools:**
-    * `optimize_image(image_path)`: Wraps **Real-ESRGAN** (specifically `realesrgan-x4plus-anime`) and performs resizing/cropping to **3300px x 2550px**. Returns path to optimized image.
-* **Output:** File Path (String) e.g., `"/tmp/optimized_image_123.png"`
-
-#### Sub-Agent C4: The Critic (Quality & Safety Assurance)
+#### Sub-Agent C3: The Critic (Quality & Safety Assurance)
 
 * **ADK Type:** `LlmAgent` (Multimodal)
 * **Role:** "Visually" inspects the final output for printability and safety.
@@ -161,10 +154,11 @@ These should be wrapped as ADK `FunctionTools`.
 * Wraps the **Nano Banana Pro** API.
 * Returns a temporary file path.
 
-2. **Optimization Tool (The "Darkroom"):**
-* **Upscaling:** Use **Real-ESRGAN** (specifically `realesrgan-x4plus-anime`). This model is critical for preserving sharp vector-like lines.
-* **Sizing:** Resize/Crop to **3300px x 2550px** (Landscape) or **2550px x 3300px** (Portrait).
-* **Color Profile:** Convert to Grayscale or CMYK to ensure "Rich Black" doesn't ruin home printing.
+2. **Optimization Tool (The "Vectorization Pipeline"):**
+* **Mechanism:** Instead of AI-based upscaling, the tool uses **Potrace** to convert the raster generation into a vector (SVG), repairing pixelation and ensuring perfectly sharp edges.
+* **Sizing:** Renders the SVG at a fixed **2550px x 3300px** (Portrait).
+* **File Management:** Saves the output using the same filename as the raw generation, but stored in the `/optimized` directory.
+* **Color Profile:** Ensures 1-bit monochrome output for perfect printing contrast.
 
 ---
 
@@ -181,17 +175,15 @@ These should be wrapped as ADK `FunctionTools`.
 3. **Studio Loop (Attempt 1):**
 * **Stylist:** Detects tag "Collection". Selects **Micro-Style 5 (Icon Scatter)**.
    * *Prompt:* "A fun 'doodle sheet' coloring page... distinct items scattered evenly... no overlapping."
-* **Generator:** Creates Image A.
-* **Optimizer:** Upscales Image A.
-* **Critic:** Reviews Image A.
+* **Generator:** Creates Image A and then optimizes it to produce an upscaled version.
+* **Critic:** Reviews the optimized image.
    * *Result:* **REJECT**.
    * *Feedback:* "The scarf and the hat are touching in the center. Items must be isolated."
 
 4. **Studio Loop (Attempt 2):**
 * **Stylist:** Receives feedback. Rewrites prompt: "...ensure plenty of whitespace between the scarf and hat. Items must be completely separated..."
-* **Generator:** Creates Image B.
-* **Optimizer:** Upscales Image B.
-* **Critic:** Reviews Image B.
+* **Generator:** Creates Image B and optimizes it.
+* **Critic:** Reviews the optimized image.
    * *Result:* **PASS**.
 
 5. **Publisher:** Saves Image B to GCS bucket, updates History (database), sets up featured image, invalidates website cache (Next.js).
