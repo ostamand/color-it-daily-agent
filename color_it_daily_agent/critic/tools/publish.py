@@ -60,6 +60,7 @@ def publish_to_firestore(
     
     # Data for the main collection (Metadata)
     metadata_payload = {
+        "published": False,
         "title": title,
         "description": description,
         "visual_tags": visual_tags,
@@ -72,7 +73,7 @@ def publish_to_firestore(
         "feedback": feedback,
         "published_date": published_date,
         # Flatten tags for easier basic filtering if needed
-        "tags_search": visual_tags 
+        "tags_search": visual_tags
     }
     
     # Data for the vector collection (Similarity Search)
