@@ -76,7 +76,9 @@ The system is designed as a **Sequential Agent** (The Publisher) that orchestrat
 
 * **ADK Type:** `LlmAgent`
 * **Role:** Transforms the `ConceptJSON` into a descriptive, natural language prompt strictly adhering to a technical **Micro-Style**.
-* **Input:** `ConceptJSON` + (Optional) `CritiqueFeedback` from previous failed attempt.
+* **Input:**
+    * `ConceptJSON` (Always present).
+    * `LoopContext` (Optional, from iterations 2+): `status`, `feedback`, `positive_prompt`.
 * **Tools:** None.
 * **Output:** JSON Payload
   ```json
@@ -119,19 +121,32 @@ The system is designed as a **Sequential Agent** (The Publisher) that orchestrat
 * **ADK Type:** `LlmAgent` (Multimodal)
 * **Role:** "Visually" inspects the final output for printability and safety.
 * **Input:** The optimized image file path + Original Description (from context).
-* **Tools:** None (Relies on Multimodal Vision Capabilities).
+* **Tools:** 
+    * `download_image(gcs_path)`: Fetches the image file so the Multimodal Agent can process it.
+    * `publish_to_firestore(title, description, visual_tags, optimized_image_path)`: Saves the approved record to the database and generates vector embeddings.
 * **System Instruction:** "You are a strict art critic for **children's coloring pages**.
 1. **Safety Check (Zero Tolerance):** Reject if content is scary, suggestive, or ambiguous.
 2. **Quality Check:** Reject if lines are broken/faint or image contains grayscale shading.
 3. **Composition Check:**
 * If 'Sticker': Reject if background is cluttered.
 * If 'Collection': Reject if items overlap or touch.
+4. **Complexity Check:** Reject if details are too small for crayons.
 
-4. **Complexity Check:** Reject if details are too small for crayons."
+**Action:**
+* If the image meets all criteria, set `status` to "PASS" and **IMMEDIATELY call the `publish_to_firestore` tool** to save the record.
+* If rejected, set `status` to "REJECT" and provide specific `feedback`."
 
 * **Output:** JSON Payload
   ```json
   {
+    "title": "...",
+    "description": "...",
+    "visual_tags": [...],
+    "mood": "...",
+    "target_audience": "...",
+    "positive_prompt": "...",
+    "negative_prompt": "...",
+    "optimized_image_path": "...",
     "status": "PASS" | "REJECT",
     "feedback": "Reason for rejection or praise."
   }
@@ -185,5 +200,6 @@ These should be wrapped as ADK `FunctionTools`.
 * **Generator:** Creates Image B and optimizes it.
 * **Critic:** Reviews the optimized image.
    * *Result:* **PASS**.
+   * *Action:* **Calls `publish_to_firestore`**.
 
-5. **Publisher:** Saves Image B to GCS bucket, updates History (database), sets up featured image, invalidates website cache (Next.js).
+5. **Publisher:** Confirms success, sets up featured image, invalidates website cache (Next.js).
