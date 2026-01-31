@@ -1,5 +1,6 @@
 fun_observances_db = {
     # --- January (Winter/Indoor) ---
+    "01-01": "New Year's Day",
     "01-04": "World Braille Day",
     "01-05": "National Bird Day",
     "01-20": "Penguin Awareness Day",
@@ -10,18 +11,20 @@ fun_observances_db = {
     "02-02": "Groundhog Day",
     "02-09": "National Pizza Day",
     "02-11": "International Day of Women and Girls in Science",
+    "02-14": "Valentine's Day",
     "02-17": "Random Acts of Kindness Day",
     "02-27": "International Polar Bear Day",
     # --- March (Spring/Nature) ---
     "03-01": "World Wildlife Day",
-    "03-03": "World Wildlife Day",
     "03-14": "Pi Day (Math & Pie)",
+    "03-17": "St. Patrick's Day",
     "03-20": "World Frog Day",
     "03-22": "World Water Day",
     "03-23": "National Puppy Day",
     # --- April (Earth/Fantasy) ---
+    "04-01": "April Fools' Day",
     "04-03": "World Party Day",
-    "04-09": "National Unicorn Day",  # <--- Great for coloring
+    "04-09": "National Unicorn Day",
     "04-21": "World Creativity and Innovation Day",
     "04-22": "Earth Day",
     "04-25": "World Penguin Day",
@@ -36,7 +39,7 @@ fun_observances_db = {
     "06-03": "World Bicycle Day",
     "06-04": "National Cheese Day",
     "06-08": "World Oceans Day",
-    "06-21": "International Yoga Day",  # (Animals doing yoga is a popular theme)
+    "06-21": "International Yoga Day",
     "06-27": "National Sunglasses Day",
     # --- July (Food/Heat) ---
     "07-07": "World Chocolate Day",
@@ -64,14 +67,16 @@ fun_observances_db = {
     "10-16": "World Food Day",
     "10-20": "International Sloth Day",
     "10-26": "National Pumpkin Day",
+    "10-31": "Halloween",
     # --- November (Family/Creative) ---
     "11-01": "National Author's Day",
     "11-08": "STEM/STEAM Day",
     "11-11": "Origami Day",
-    "11-18": "National Princess Day",  # <--- Huge category for kids
+    "11-18": "National Princess Day",
     # --- December (Festive/Winter) ---
     "12-04": "National Cookie Day",
     "12-05": "International Ninja Day",
     "12-11": "International Mountain Day",
     "12-20": "National Ugly Sweater Day",
+    "12-25": "Christmas Day",
 }
