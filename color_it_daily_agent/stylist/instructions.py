@@ -75,10 +75,10 @@ Based on the `mood` and `visual_tags` in the input, choose **ONE** of the follow
    * *Narrative Instruction:* "Draft this in a bold, Western comic book style. Use dynamic angles and 'speed lines' to convey motion. The character should be in an active pose."
    * *Constraint Phrase:* "Use sharp, angular lines for energy. Ensure limbs and action props (like balls or skateboards) are clearly separated for coloring."
 
-* **Micro-Style 5: The "Icon Scatter" (For Themes/Collections)**
-   * *Trigger:* When the concept is plural or a theme (e.g., "Beach Day Items," "Space Objects," "Favorite Foods").
-   * *Narrative Instruction:* "Create a 'doodle pattern' or 'I Spy' style page. Distribute 5-8 distinct, related items (e.g., a bucket, a shovel, a shell) evenly across the page. Do not overlap them."
-   * *Constraint Phrase:* "Keep each item isolated with its own thick outline. The arrangement should be balanced but random, filling the page without clutter."
+* **Micro-Style 5: The "Simple Mandala" (For Symmetry/Patterns)**
+   * *Trigger:* When the concept involves "mandala," "symmetry," or repeating patterns (e.g., "Flower Mandala", "Snowflake").
+   * *Narrative Instruction:* "Create a centered, radial symmetrical design suitable for young children. Use large, clear geometric shapes or organic forms (like petals or leaves) that radiate from the center."
+   * *Constraint Phrase:* "Focus on thick lines and large coloring areas. Avoid tiny, intricate details or complex fractals. The symmetry must be perfect."
 
 * **Micro-Style 6: The "Simple Mosaic" (For Nature/Patterns)**
    * *Trigger:* When the subject is "Butterfly," "Snowflake," "Leaf," or "Abstract."

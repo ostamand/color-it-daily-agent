@@ -39,7 +39,7 @@ The system is designed as a **Sequential Agent** (The Publisher) that orchestrat
 * **Directives:**
    * **Analyze Context:** Check calendar for holidays/seasons.
    * **Rotate Category:** Switch between Animals, Fantasy, Jobs, Vehicles, Nature, Daily Life.
-   * **Rotate Composition:** Switch between **Type A (Character Sticker)**, **Type B (Full Scene)**, **Type C (Collection)**, and **Type D (Action Shot)**.
+   * **Rotate Composition:** Switch between **Type A (Character Sticker)**, **Type B (Full Scene)**, **Type C (Mandala)**, and **Type D (Action Shot)**.
    * **De-duplication:** Ensure no semantic overlap with past content.
 
 
@@ -53,13 +53,13 @@ The system is designed as a **Sequential Agent** (The Publisher) that orchestrat
 
 ```json
 {
-  "title": "Space Explorer Kit",
-  "description": "A collection of space items: a helmet, a rocket, a planet, and a star.",
-  "visual_tags": ["space", "helmet", "collection", "pattern"],
+  "title": "Spring Flower Mandala",
+  "description": "A symmetrical mandala design featuring blooming daisies and leaves radiating from the center.",
+  "visual_tags": ["flower", "spring", "mandala", "symmetry"],
   "target_audience": "child",
   "complexity": "low",
-  "mood": "Fun",
-  "avoid_elements": ["overlapping items", "tiny details"]
+  "mood": "Calm",
+  "avoid_elements": ["tiny details", "broken lines", "shading"]
 }
 
 ```
@@ -126,10 +126,10 @@ The system is designed as a **Sequential Agent** (The Publisher) that orchestrat
     * `publish_to_firestore(title, description, visual_tags, optimized_image_path)`: Saves the approved record to the database and generates vector embeddings.
 * **System Instruction:** "You are a strict art critic for **children's coloring pages**.
 1. **Safety Check (Zero Tolerance):** Reject if content is scary, suggestive, or ambiguous.
-2. **Quality Check:** Reject if lines are broken/faint or image contains grayscale shading.
+2. **Quality Check:** Reject if lines are broken/faint, image contains grayscale shading, or **has a border**.
 3. **Composition Check:**
 * If 'Sticker': Reject if background is cluttered.
-* If 'Collection': Reject if items overlap or touch.
+* If 'Mandala': Reject if not symmetrical.
 4. **Complexity Check:** Reject if details are too small for crayons.
 
 **Action:**
@@ -181,22 +181,22 @@ These should be wrapped as ADK `FunctionTools`.
 
 1. **Trigger:** Daily scheduled job.
 2. **Creative Director:**
-* Checks date (Dec 20th).
+* Checks date (April 10th).
 * History Check: Yesterday was "Scene/Nature".
-* **Pivot:** Selects **Category: Daily Life** and **Composition: Collection**.
-* Proposes: "Winter Clothing Kit" (Items: Mittens, Hat, Scarf, Boots).
+* **Pivot:** Selects **Category: Nature** and **Composition: Mandala**.
+* Proposes: "Spring Flower Mandala" (Symmetrical daisies and leaves).
 
 
 3. **Studio Loop (Attempt 1):**
-* **Stylist:** Detects tag "Collection". Selects **Micro-Style 5 (Icon Scatter)**.
-   * *Prompt:* "A fun 'doodle sheet' coloring page... distinct items scattered evenly... no overlapping."
+* **Stylist:** Detects tag "Mandala". Selects **Micro-Style 5 (Simple Mandala)**.
+   * *Prompt:* "Create a centered, radial symmetrical design... large, clear geometric shapes..."
 * **Generator:** Creates Image A and then optimizes it to produce an upscaled version.
 * **Critic:** Reviews the optimized image.
    * *Result:* **REJECT**.
-   * *Feedback:* "The scarf and the hat are touching in the center. Items must be isolated."
+   * *Feedback:* "The image has a black border/frame around the edges. We require borderless line art."
 
 4. **Studio Loop (Attempt 2):**
-* **Stylist:** Receives feedback. Rewrites prompt: "...ensure plenty of whitespace between the scarf and hat. Items must be completely separated..."
+* **Stylist:** Receives feedback. Rewrites prompt: "...on a pure white background **with absolutely no border or frame**..."
 * **Generator:** Creates Image B and optimizes it.
 * **Critic:** Reviews the optimized image.
    * *Result:* **PASS**.
