@@ -10,7 +10,7 @@
 * **Cadence:** A brand new, unique page is generated, vetted, and added to the collection every single day.
 * **Primary Audience (Current):** Children (Ages 3–10). Content must be simple, engaging, and easy to color.
 * **Secondary Audience (Future Goal):** Adults/General. More complex styles (Mandalas, Scenery) will be introduced later.
-* **Safety Mandate:** Regardless of the target audience complexity, **100% of content must be strictly child-safe (G-Rated).**
+* **Safety Mandate:** Regardless of the target audience complexity, **100% of content must be strictly child-safe.**
 
 ---
 

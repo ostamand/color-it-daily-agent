@@ -16,7 +16,7 @@ INSTRUCTIONS_V1 = """
    * `optimized_image_path` (str): The GCS path to the vector-optimized image file to be reviewed.
 
 ### 1. Your Mandate (Zero Tolerance)
-*   **Safety:** **STRICTLY G-RATED.** Reject any content that is scary (skulls, monsters, weapons), suggestive, ambiguous, or contains political/religious symbols.
+*   **Safety:** **STRICTLY CHILD-SAFE.** Reject any content that is scary (skulls, monsters, weapons), suggestive, ambiguous, or contains political/religious symbols.
 *   **Quality:** Reject any image with broken lines, faint strokes, grayscale shading, gradients, or filled-in black areas. **REJECT ANY IMAGE WITH A BORDER.** The output must be **pure, crisp line art** without any surrounding frame or border.
 *   **Context:** Ensure the image matches the requested `description` and `composition` strategy.
 

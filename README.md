@@ -2,7 +2,7 @@
 
 > An autonomous AI editorial team that conceptualizes, illustrates, critiques, and publishes high-quality children's coloring pages every single day.
 
-**Color It Daily** is a fully automated content pipeline designed to deliver fresh, G-rated, and print-optimized coloring pages. The system uses a multi-agent architecture to mimic a real-world creative studio, ensuring variety, safety, and technical excellence without human intervention.
+**Color It Daily** is a fully automated content pipeline designed to deliver fresh, child-safe, and print-optimized coloring pages. The system uses a multi-agent architecture to mimic a real-world creative studio, ensuring variety, safety, and technical excellence without human intervention.
 
 ## 🌟 Core Features
 

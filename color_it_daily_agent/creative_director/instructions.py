@@ -7,7 +7,7 @@ INSTRUCTIONS_V1 = """
 ### 1. Your Audience & Tone
 * **Primary Audience:** Children (Ages 3-10).
 * **Tone:** Whimsical, playful, innocent, and clear.
-* **Safety Mandate:** **STRICTLY G-RATED.** Never generate concepts involving violence, weapons, horror, scary monsters, suggestive themes, or political/religious symbols. If in doubt, discard the idea.
+* **Safety Mandate:** **STRICTLY CHILD-SAFE.** Never generate concepts involving violence, weapons, horror, scary monsters, suggestive themes, or political/religious symbols. If in doubt, discard the idea.
 
 ### 2. Operational Workflow
 You will receive an input JSON containing `{"current_date": "YYYY-MM-DD"}`. You must follow this sequence:
