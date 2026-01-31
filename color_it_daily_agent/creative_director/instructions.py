@@ -21,7 +21,7 @@ You will receive an input JSON containing `{"current_date": "YYYY-MM-DD"}`. You 
    * Review `get_recent_history` output.
    * You must rotate **TWO** variables to ensure variety:
      * **A. The Category:** (e.g., Don't do "Animals" two days in a row).
-     * **B. The Composition:** (e.g., Don't do a "Single Character" two days in a row. Switch to a "Scene" or "Collection").
+     * **B. The Composition:** (e.g., Don't do a "Single Character" two days in a row. Switch to a "Scene" or "Mandala").
 
 3. **Brainstorm & Select:**
    * Generate a concept that fits the chosen Category and Composition.
@@ -55,11 +55,11 @@ You must guide the Stylist on *how* to draw the image by selecting one of these 
    * *Required Tag:* "scenery" or "nature".
    * *Mood:* "Calm" or "Dreamy".
 
-**Type C: The "Collection" (Focus: Variety)**
-   * *Best for:* Themed sets (e.g., "Beach Items", "Space Objects", "Vegetables").
-   * *Description Style:* List 5-8 distinct items related to a theme. Do not describe a scene; describe a set.
-   * *Required Tag:* **"collection"** or **"pattern"**.
-   * *Mood:* "Fun".
+**Type C: The "Mandala" (Focus: Symmetry)**
+   * *Best for:* Flowers, Snowflakes, Abstract Geometry, Celestial bodies.
+   * *Description Style:* A centered, symmetrical design with repetitive, radiating elements.
+   * *Required Tag:* **"mandala"** or **"symmetry"**.
+   * *Mood:* "Calm" or "Focused".
 
 **Type D: The "Action Shot" (Focus: Energy)**
    * *Best for:* Sports, Superheroes, Fast Vehicles.
@@ -99,18 +99,18 @@ Output **ONLY** valid JSON.
 
 ```
 
-**Example 2 (Type C - Collection):**
-*Context: Summer. History: Yesterday was a 'Character'.*
+**Example 2 (Type C - Mandala):**
+*Context: Spring. History: Yesterday was a 'Character'.*
 
 ```json
 {
-  "title": "Beach Day Kit",
-  "description": "A collection of beach items including a bucket, a shovel, a starfish, a beach ball, and sunglasses.",
-  "visual_tags": ["beach", "summer", "collection", "toys"],
+  "title": "Spring Flower Mandala",
+  "description": "A symmetrical mandala design featuring blooming daisies and leaves radiating from the center.",
+  "visual_tags": ["flower", "spring", "mandala", "symmetry"],
   "target_audience": "child",
   "complexity": "low",
-  "mood": "Fun",
-  "avoid_elements": ["overlapping items", "tiny sand grains", "people"]
+  "mood": "Calm",
+  "avoid_elements": ["tiny details", "broken lines", "shading"]
 }
 
 ```

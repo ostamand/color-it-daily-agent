@@ -28,10 +28,22 @@ def download_image(gcs_path: str) -> str:
     blob = bucket.blob(blob_name)
 
     # Create a temporary file
-    _, temp_local_path = tempfile.mkstemp(suffix=os.path.splitext(blob_name)[1])
+    fd, temp_local_path = tempfile.mkstemp(suffix=os.path.splitext(blob_name)[1])
+    os.close(fd)
     
     # Download the file
     blob.download_to_filename(temp_local_path)
     
+    # Verify the image is valid
+    try:
+        from PIL import Image
+        with Image.open(temp_local_path) as img:
+            img.verify()
+        # Re-open to get info (verify closes the file)
+        with Image.open(temp_local_path) as img:
+            print(f"Verified image: {img.format}, {img.size}, mode={img.mode}")
+    except Exception as e:
+        print(f"WARNING: Downloaded file may be corrupted: {e}")
+
     print(f"Downloaded {gcs_path} to {temp_local_path}")
     return temp_local_path

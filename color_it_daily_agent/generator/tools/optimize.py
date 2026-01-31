@@ -79,10 +79,35 @@ def optimize_image(image_path: str) -> str:
             output_height=target_height
         )
 
-        # 5. Upload
+        # Post-process: Ensure white background for both PNG and WebP
+        with Image.open(local_optimized) as img:
+            if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+                img = img.convert("RGBA")
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                background.paste(img, mask=img.split()[-1])
+                img = background
+            else:
+                img = img.convert("RGB")
+            
+            # Save corrected PNG
+            img.save(local_optimized, format="PNG")
+            
+            # Save WebP
+            local_webp = os.path.join(temp_dir, "optimized.webp")
+            img.save(local_webp, format="WEBP")
+
+        # 5. Upload PNG
         output_filename = f"optimized/{original_filename}"
         output_blob = bucket.blob(output_filename)
         output_blob.upload_from_filename(local_optimized, content_type="image/png")
+        output_blob.make_public()
+
+        # 6. Upload WebP
+        webp_filename = os.path.splitext(original_filename)[0] + ".webp"
+        output_webp_filename = f"optimized/{webp_filename}"
+        output_webp_blob = bucket.blob(output_webp_filename)
+        output_webp_blob.upload_from_filename(local_webp, content_type="image/webp")
+        output_webp_blob.make_public()
 
         return f"gs://{bucket_name}/{output_filename}"
 

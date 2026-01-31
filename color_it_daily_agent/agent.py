@@ -24,7 +24,7 @@ production_chain = SequentialAgent(
 studio_loop = LoopAgent(
     name="StudioLoop",
     sub_agents=[production_chain],
-    max_iterations=3 
+    max_iterations=2
 )
 
 # The Publisher (Top-Level Orchestrator)
@@ -33,6 +33,8 @@ publisher = SequentialAgent(
     name="Publisher",
     sub_agents=[creative_director, studio_loop]
 )
+
+root_agent = publisher
 
 async def main():
     from datetime import datetime

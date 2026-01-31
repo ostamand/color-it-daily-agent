@@ -43,7 +43,7 @@ Describe the scene using full sentences to ensure correct object placement.
 
 **The "Artistic Constraints" (The Closer):**
 End with explicit line-art instructions.
-> "The image uses thick, uniform black lines on a pure white background with absolutely no shading, texture, or grayscale fill."
+> "The image uses thick, uniform black contour lines on a pure white background with absolutely no shading, texture, grayscale fill, or tiny internal details. Focus strictly on the main shapes."
 
 ### 2. STYLE SELECTION & AUDIENCE ADAPTATION
 
@@ -58,17 +58,17 @@ Based on the `mood` and `visual_tags` in the input, choose **ONE** of the follow
 * **Micro-Style 1: The "Bold Sticker" (Default for Single Objects)**
    * *Trigger:* When the subject is a single character (e.g., "A Fox", "A Car").
    * *Narrative Instruction:* "Depict the subject as a high-impact 'sticker style' illustration. Use **ultra-thick outer contours** to isolate the subject from the white background. Keep internal details minimal and large."
-   * *Constraint Phrase:* "Focus on strong silhouettes and avoid all background elements."
+   * *Constraint Phrase:* "Focus on strong silhouettes and avoid all background elements. No thin lines or texture."
 
 * **Micro-Style 2: The "Whimsical Storybook" (For Scenes)**
    * *Trigger:* When `mood` is "Calm," "Dreamy," or the description involves nature/scenery.
    * *Narrative Instruction:* "Illustrate this as a soft, hand-drawn children's book page. Include simple environmental context (like a tuft of grass, a cloud, or a flower) to ground the character."
-   * *Constraint Phrase:* "Use fluid, organic line work that feels friendly and inviting, but keep the background sparse and uncluttered."
+   * *Constraint Phrase:* "Use fluid, organic line work that feels friendly and inviting, but keep the background sparse and uncluttered. Avoid small details."
 
 * **Micro-Style 3: The "Kawaii Pop" (For "Cute" subjects)**
    * *Trigger:* When `mood` is "Fun," "Happy," or tags include "cute," "baby," "sweet."
    * *Narrative Instruction:* "Use a 'Kawaii' aesthetic characterized by rounded proportions, large expressive eyes, and soft curves. Avoid sharp angles."
-   * *Constraint Phrase:* "Prioritize roundness and cuteness over anatomical accuracy. Use simple, rounded line weights."
+   * *Constraint Phrase:* "Prioritize roundness and cuteness over anatomical accuracy. Use simple, rounded line weights. No tiny details."
 
 * **Micro-Style 4: The "Dynamic Comic" (For Action/Sports)**
    * *Trigger:* When `mood` is "Energetic," "Adventure," or subject involves sports, superheroes, or vehicles.
@@ -154,7 +154,7 @@ You are part of a feedback loop. Your input might contain criticism from a previ
   "mood": "Energetic",
   "target_audience": "child",
   "positive_prompt": "A die-cut sticker design of a happy fox. The fox is depicted with an energetic expression, sitting upright. The image features ultra-thick, uniform black outer contours that completely isolate the character from the white background. There are no background elements, no snowflakes, and no scenery. The interior lines are simple and bold, designed for easy coloring.",
-  "negative_prompt": "background, scenery, trees, snowflakes, thin lines, complex details, shading, grayscale, texture, sketchy, small parts"
+  "negative_prompt": "internal details, fur texture, hatching, small parts, intricate, background, scenery, trees, snowflakes, thin lines, complex details, shading, grayscale, texture, sketchy"
 }
 ```
 
@@ -186,7 +186,7 @@ You are part of a feedback loop. Your input might contain criticism from a previ
   "mood": "Dreamy",
   "target_audience": "child",
   "positive_prompt": "A gentle, storybook-style coloring page illustration of a cute fox sitting quietly in a snowy forest clearing. The scene includes soft, organic details like a few large pine trees in the distance and falling snowflakes. The line work is fluid and friendly, creating a cozy atmosphere. The background is sparse but present, offering a context for the character without cluttering the page.",
-  "negative_prompt": "shading, heavy blacks, scary, sharp angles, grayscale, realism, photo, intricate patterns, dark atmosphere"
+  "negative_prompt": "small details, texture, shading, heavy blacks, scary, sharp angles, grayscale, realism, photo, intricate patterns, dark atmosphere"
 }
 ```
 
@@ -218,7 +218,7 @@ You are part of a feedback loop. Your input might contain criticism from a previ
   "mood": "Playful",
   "target_audience": "child",
   "positive_prompt": "A super cute 'Kawaii' style drawing of a baby fox wearing a large, puffy scarf. The fox has exaggerated rounded proportions, large sparkling eyes, and a tiny nose. The lines are soft, rounded, and bouncy. The focus is entirely on the adorable expression of the character. Use simple geometric shapes and avoid any sharp or realistic anatomical details.",
-  "negative_prompt": "realistic, anatomical, sharp edges, scary, angry, detailed fur, shading, grayscale, complex background"
+  "negative_prompt": "tiny details, fur texture, realistic, anatomical, sharp edges, scary, angry, detailed fur, shading, grayscale, complex background"
 }
 
 ```
@@ -249,7 +249,7 @@ You are part of a feedback loop. Your input might contain criticism from a previ
   "mood": "Adventure",
   "target_audience": "child",
   "positive_prompt": "A bold comic-book style illustration of a cool dog performing a trick on a skateboard. The dog is wearing sunglasses and a backwards cap. Action lines surround the board to show speed. The drawing uses sharp, confident vector lines and clear separation between the dog's paws and the board. The perspective is dynamic but easy to understand.",
-  "negative_prompt": "static, boring, thin lines, blurry, messy sketch, shading, grayscale, realistic, background clutter"
+  "negative_prompt": "thin lines, hatching, static, boring, blurry, messy sketch, shading, grayscale, realistic, background clutter"
 }
 ```
 
@@ -279,7 +279,7 @@ You are part of a feedback loop. Your input might contain criticism from a previ
   "mood": "Fun",
   "target_audience": "child",
   "positive_prompt": "A fun 'doodle sheet' coloring page featuring a collection of space-themed items scattered across a white background. Distinct items include an astronaut helmet, a ringed planet, a small rocket, and a smiling star. The items are evenly spaced and do not touch or overlap. Each object has a thick, uniform outline like a sticker sheet.",
-  "negative_prompt": "overlapping, messy, cluttered, tiny details, scene, background, shading, grayscale, texture"
+  "negative_prompt": "overlapping, small parts, messy, cluttered, tiny details, scene, background, shading, grayscale, texture"
 }
 ```
 """
