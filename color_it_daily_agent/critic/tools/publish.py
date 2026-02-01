@@ -1,15 +1,17 @@
 import os
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from google.cloud import firestore
 from google.cloud.firestore_v1.vector import Vector
 
+from google.adk.tools.tool_context import ToolContext
 from ...lib.embeddings import generate_embedding
 from ...lib.database import get_db
 from ...app_configs import configs
 
 def publish_to_firestore(
     title: str,
+    reasoning: str,
     description: str,
     visual_tags: List[str],
     mood: str,
@@ -18,13 +20,15 @@ def publish_to_firestore(
     negative_prompt: str,
     optimized_image_path: str,
     status: str,
-    feedback: str
+    feedback: str,
+    tool_context: Optional[ToolContext] = None
 ) -> str:
     """
     Saves the approved coloring page metadata to Firestore.
     
     Args:
         title (str): The title of the coloring page.
+        reasoning (str): The context or information used to decide the concept.
         description (str): The visual description.
         visual_tags (List[str]): List of tags.
         mood (str): The emotional tone.
@@ -34,6 +38,7 @@ def publish_to_firestore(
         optimized_image_path (str): The GCS path to the final asset.
         status (str): The final status (e.g. "PASS").
         feedback (str): The critic's feedback.
+        tool_context (Optional[ToolContext]): The tool context for ADK workflow.
         
     Returns:
         str: A success message with the document ID.
@@ -62,6 +67,7 @@ def publish_to_firestore(
     metadata_payload = {
         "published": False,
         "title": title,
+        "reasoning": reasoning,
         "description": description,
         "visual_tags": visual_tags,
         "mood": mood,
@@ -90,5 +96,9 @@ def publish_to_firestore(
     
     # Commit
     batch.commit()
+
+    # Signal termination of the LoopAgent if applicable
+    if tool_context:
+        tool_context.actions.escalate = True
     
     return f"SUCCESS: Published '{title}' to Firestore with ID {doc_id}"

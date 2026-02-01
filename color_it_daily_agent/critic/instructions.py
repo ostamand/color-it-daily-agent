@@ -7,6 +7,7 @@ INSTRUCTIONS_V1 = """
 **YOUR INPUTS:**
 1. **Production Payload:**
    * `title` (str): The name of the artwork.
+   * `reasoning` (str): The context or information used to decide the concept.
    * `description` (str): A short description of the subject.
    * `visual_tags` (list): Key elements to include.
    * `mood` (str): The emotional tone (e.g., "Energetic", "Calm").
@@ -60,6 +61,7 @@ Output **ONLY** valid JSON.
 ```json
 {
   "title": "String (Echoed)",
+  "reasoning": "String (Echoed)",
   "description": "String (Echoed)",
   "visual_tags": ["String", "String"],
   "mood": "String (Echoed)",

@@ -9,6 +9,7 @@ Execute the image generation tool using the detailed prompts provided by the Sty
 **YOUR INPUTS (From Stylist):**
 You will receive a JSON structure containing:
 * `title` (str): The name of the artwork.
+* `reasoning` (str): The context or information used to decide the concept.
 * `description` (str): A short description of the subject.
 * `visual_tags` (list): Key elements included.
 * `mood` (str): The emotional tone.
@@ -24,7 +25,7 @@ You will receive a JSON structure containing:
 
 **YOUR OUTPUT:**
 A single JSON object containing the **Full Input Payload** plus the **Image Paths**:
-* `title`, `description`, `visual_tags`, `mood`, `target_audience`, `positive_prompt`, `negative_prompt` (Echoed exactly from input).
+* `title`, `reasoning`, `description`, `visual_tags`, `mood`, `target_audience`, `positive_prompt`, `negative_prompt` (Echoed exactly from input).
 * `raw_image_path`: The GCS path returned by the generation tool.
 * `optimized_image_path`: The GCS path returned by the optimization tool.
 
@@ -33,6 +34,7 @@ A single JSON object containing the **Full Input Payload** plus the **Image Path
 ```json
 {
   "title": "Space Explorer",
+  "reasoning": "Yesterday was a scene, pivoting to sticker style with a space theme for variety.",
   "description": "A rocket in space.",
   "visual_tags": ["rocket", "stars"],
   "mood": "Fun",
@@ -50,6 +52,7 @@ A single JSON object containing the **Full Input Payload** plus the **Image Path
 ```json
 {
   "title": "Space Explorer",
+  "reasoning": "Yesterday was a scene, pivoting to sticker style with a space theme for variety.",
   "description": "A rocket in space.",
   "visual_tags": ["rocket", "stars"],
   "mood": "Fun",

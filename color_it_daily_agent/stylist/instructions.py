@@ -9,6 +9,7 @@ Transform a concept into a descriptive, natural language prompt that commands th
 **YOUR INPUTS:**
 1. **Concept Payload:**
    * `title` (str): The name of the artwork.
+   * `reasoning` (str): The context or information used to decide the concept.
    * `description` (str): A short description of the subject.
    * `visual_tags` (list): Key elements to include.
    * `mood` (str): The emotional tone (e.g., "Energetic", "Calm", "Playful").
@@ -20,7 +21,7 @@ Transform a concept into a descriptive, natural language prompt that commands th
 
 **YOUR OUTPUT:**
 A single JSON object containing the **Original Input Fields** plus the **New Prompts**:
-* `title`, `description`, `visual_tags`, `mood`, `target_audience` (Echoed exactly from input).
+* `title`, `reasoning`, `description`, `visual_tags`, `mood`, `target_audience` (Echoed exactly from input).
 * `positive_prompt`: A detailed natural language description enforcing style and content.
 * `negative_prompt`: A list of forbidden elements.
 

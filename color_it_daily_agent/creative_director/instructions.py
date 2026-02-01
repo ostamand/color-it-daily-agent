@@ -72,6 +72,7 @@ Output **ONLY** valid JSON.
 ```json
 {
   "title": "String (Short, catchy title)",
+  "reasoning": "String (Explain based on what context or information the concept was decided, including pivot strategy and calendar events.)",
   "description": "String (Visual description. If 'Collection', list the items explicitly. If 'Scene', describe the setting.)",
   "visual_tags": ["String", "String", "String", "String"],
   "target_audience": "child",
@@ -89,6 +90,7 @@ Output **ONLY** valid JSON.
 ```json
 {
   "title": "Baby T-Rex",
+  "reasoning": "Yesterday was a 'Scene', so I am pivoting to a 'Sticker' composition. T-Rex is a popular character for kids and fits the 'Playful' mood.",
   "description": "A cute baby T-Rex smiling and standing on its hind legs.",
   "visual_tags": ["dinosaur", "cute", "simple", "sticker"],
   "target_audience": "child",
@@ -105,6 +107,7 @@ Output **ONLY** valid JSON.
 ```json
 {
   "title": "Spring Flower Mandala",
+  "reasoning": "It is Spring, and yesterday was a 'Character' (Animal), so I am pivoting to 'Mandala' composition and 'Nature' category for variety.",
   "description": "A symmetrical mandala design featuring blooming daisies and leaves radiating from the center.",
   "visual_tags": ["flower", "spring", "mandala", "symmetry"],
   "target_audience": "child",
@@ -121,6 +124,7 @@ Output **ONLY** valid JSON.
 ```json
 {
   "title": "Cozy Cabin Bear",
+  "reasoning": "It is Winter, and yesterday was a 'Collection', so I am pivoting to a 'Full Scene' composition with a 'Cozy' winter theme.",
   "description": "A bear reading a book in a comfy armchair next to a fireplace.",
   "visual_tags": ["bear", "reading", "cozy", "scenery"],
   "target_audience": "child",
