@@ -6,6 +6,10 @@ PAGE_TAGS_TABLE = "page_tags"
 TAGS_TABLE = "tags"
 COLLECTIONS_TABLE = "collections"
 
+COLORING_PAGE_COLLECTION_NAME="wonder-daily"
+COLORING_PAGE_COLLECTION_DISPLAY_NAME="Wonder Daily"
+
+
 def get_page_unique_name(cursor, name: str) -> str:
     """
     Generates a unique slug for the page name.
@@ -96,10 +100,10 @@ def add_new_page(cursor, page_data: dict):
     width = page_data.get('width', 2550)
     colored_path = page_data.get('colored_path', None) # The raw original
     tags = page_data.get('tags', [])
+    reasoning = page_data.get("reasoning", None)
     
-    #TODO change this
-    upd_collection_name = "wonder-daily"
-    display_collection_name = "Wonder Daily"
+    upd_collection_name = COLORING_PAGE_COLLECTION_NAME
+    display_collection_name = COLORING_PAGE_COLLECTION_DISPLAY_NAME
 
     # 2. Get Unique Name
     unique_name = get_page_unique_name(cursor, name)
@@ -123,9 +127,10 @@ def add_new_page(cursor, page_data: dict):
             unique_name,
             upd_collection_name,
             colored_path,
-            published
+            published,
+            reasoning
         ) 
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, false) 
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, false, %s) 
         RETURNING id
     """
 
@@ -145,7 +150,8 @@ def add_new_page(cursor, page_data: dict):
         width,
         unique_name,
         upd_collection_name,
-        colored_path
+        colored_path,
+        reasoning
     ))
     
     page_id = cursor.fetchone()[0]

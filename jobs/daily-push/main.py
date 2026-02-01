@@ -24,6 +24,11 @@ PG_DB = os.environ.get("POSTGRES_DB")
 PG_USER = os.environ.get("POSTGRES_USER")
 PG_PASSWORD = os.environ.get("POSTGRES_PASSWORD")
 
+# General Config
+GENERATE_SCRIPT="color_it_daily_agent.agent"
+MODEL_NAME="gemini-3-pro-image-preview"
+PROMPT_MODEL_NAME="gemini-3-flash-preview"
+
 @functions_framework.http
 def daily_push(request):
     """
@@ -86,12 +91,13 @@ def daily_push(request):
                     "generated_on": data.get("published_date", data.get("created_at")),
                     "width": 2550,
                     "height": 3300,
-                    "prompt_model_name": "gemini-3-pro-image-preview",
-                    "model_name": "color-it-daily-agent-v1",
-                    "generate_script": "color_it_daily_agent.agent",
+                    "prompt_model_name": PROMPT_MODEL_NAME,
+                    "model_name": MODEL_NAME,
+                    "generate_script": GENERATE_SCRIPT,
                     "colored_path": None,
                     "full_path": full_path,
                     "thumbnail_path": thumbnail_path,
+                    "reasoning": data.get("reasoning", None)
                 }
 
                 # 4. Insert into Postgres
