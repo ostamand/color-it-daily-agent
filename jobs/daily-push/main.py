@@ -94,7 +94,7 @@ def daily_push(request):
                     "prompt_model_name": PROMPT_MODEL_NAME,
                     "model_name": MODEL_NAME,
                     "generate_script": GENERATE_SCRIPT,
-                    "colored_path": None,
+                    "colored_path": data.get("colored_image_path", None),
                     "full_path": full_path,
                     "thumbnail_path": thumbnail_path,
                     "reasoning": data.get("reasoning", None)

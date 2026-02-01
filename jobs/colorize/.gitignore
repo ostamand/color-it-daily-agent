@@ -1,0 +1,14 @@
+__pycache__/
+venv/
+.env
+.DS_Store
+
+instructions.txt
+mock_event.json
+deploy.sh
+
+check_trigger.sh
+debug_fix_auth.sh
+fix_auth.sh
+list_triggers.sh
+test_deployed.sh

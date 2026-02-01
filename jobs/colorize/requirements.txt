@@ -1,0 +1,7 @@
+google-cloud-storage
+google-cloud-firestore
+google-genai
+functions-framework
+python-dotenv
+Pillow
+tenacity

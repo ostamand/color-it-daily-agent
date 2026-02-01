@@ -98,7 +98,7 @@ def add_new_page(cursor, page_data: dict):
     prompt_model_name = page_data.get('prompt_model_name', 'unknown') # Optional
     height = page_data.get('height', 3300)
     width = page_data.get('width', 2550)
-    colored_path = page_data.get('colored_path', None) # The raw original
+    colored_path = page_data.get('colored_path', None)
     tags = page_data.get('tags', [])
     reasoning = page_data.get("reasoning", None)
     

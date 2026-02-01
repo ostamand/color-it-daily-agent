@@ -3,6 +3,11 @@ from google.cloud import storage
 from PIL import Image
 import io
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 storage_client = storage.Client()
 
@@ -18,10 +23,10 @@ def generate_thumbnail(cloud_event):
     bucket_name = data["bucket"]
     name = data["name"]
 
-    print(f"Event ID: {event_id}")
-    print(f"Event Type: {event_type}")
-    print(f"Bucket: {bucket_name}")
-    print(f"File: {name}")
+    logger.info(f"Event ID: {event_id}")
+    logger.info(f"Event Type: {event_type}")
+    logger.info(f"Bucket: {bucket_name}")
+    logger.info(f"File: {name}")
 
     # Prevent infinite loops and only process files in the 'optimized/' directory (excluding 'thumbnail/')
     # Expected structure: optimized/filename.webp
@@ -29,12 +34,16 @@ def generate_thumbnail(cloud_event):
     
     # 1. Must be in 'optimized/'
     if not name.startswith("optimized/"):
-        print(f"Skipping {name}: Not in 'optimized/' directory.")
+        logger.info(f"Skipping {name}: Not in 'optimized/' directory.")
+        return
+    
+    if "/colored/" in name:
+        logger.info(f"Skipping {name}: No thumbnail for colored.")
         return
 
     # 2. Must NOT be in 'optimized/thumbnail/' (or just 'thumbnail/') to avoid loops
     if "/thumbnail/" in name:
-        print(f"Skipping {name}: Already a thumbnail.")
+        logger.info(f"Skipping {name}: Already a thumbnail.")
         return
 
     # 3. Process the image
@@ -51,7 +60,7 @@ def generate_thumbnail(cloud_event):
         new_width = int(original_width / 4)
         new_height = int(original_height / 4)
         
-        print(f"Resizing from {original_width}x{original_height} to {new_width}x{new_height}")
+        logger.info(f"Resizing from {original_width}x{original_height} to {new_width}x{new_height}")
 
         # Resize
         image.thumbnail((new_width, new_height))
@@ -73,12 +82,20 @@ def generate_thumbnail(cloud_event):
         # Upload thumbnail
         thumbnail_blob = bucket.blob(thumbnail_path)
         thumbnail_blob.upload_from_file(thumb_buffer, content_type="image/webp")
-        thumbnail_blob.make_public()
+        
+        # Attempt to make public
+        try:
+            thumbnail_blob.make_public()
+            logger.info(f"Thumbnail made public: {thumbnail_blob.public_url}")
+        except Exception as e:
+            logger.warning(f"Failed to make thumbnail public (Bucket might have Uniform Access enabled): {e}")
+            # If uniform access is enabled, the object inherits bucket permissions. 
+            # If the bucket is public, the object is public.
 
-        print(f"Thumbnail created at gs://{bucket_name}/{thumbnail_path}")
+        logger.info(f"Thumbnail created at gs://{bucket_name}/{thumbnail_path}")
 
     except Exception as e:
-        print(f"Error processing {name}: {e}")
+        logger.error(f"Error processing {name}: {e}")
         # Depending on requirements, we might want to raise the error to retry, 
         # but for image processing issues, retries often fail similarly.
         # For now, we log and exit.
