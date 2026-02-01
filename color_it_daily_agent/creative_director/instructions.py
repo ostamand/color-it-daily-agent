@@ -72,7 +72,7 @@ Output **ONLY** valid JSON.
 ```json
 {
   "title": "String (Short, catchy title)",
-  "reasoning": "String (Explain based on what context or information the concept was decided, including pivot strategy and calendar events.)",
+  "reasoning": "String (A friendly, customer-facing explanation of why this concept was chosen today. Focus on the theme, season, or variety. Avoid internal jargon like 'pivot' or 'composition types' and do not refer to 'the audience' or 'kids' in the third person.)",
   "description": "String (Visual description. If 'Collection', list the items explicitly. If 'Scene', describe the setting.)",
   "visual_tags": ["String", "String", "String", "String"],
   "target_audience": "child",
