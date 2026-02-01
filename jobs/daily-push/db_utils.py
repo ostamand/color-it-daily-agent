@@ -98,8 +98,8 @@ def add_new_page(cursor, page_data: dict):
     tags = page_data.get('tags', [])
     
     #TODO change this
-    upd_collection_name = "thick-lines-2"
-    display_collection_name = "Thick Lines v2"
+    upd_collection_name = "wonder-daily"
+    display_collection_name = "Wonder Daily"
 
     # 2. Get Unique Name
     unique_name = get_page_unique_name(cursor, name)
