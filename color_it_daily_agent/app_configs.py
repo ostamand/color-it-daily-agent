@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 @dataclass(frozen=True)
 class Configs:
     gcp_project: str
@@ -25,8 +26,10 @@ class Configs:
             embedding_collection=os.environ["EMBEDDING_COLLECTION"],
             coloring_page_collection=os.environ["COLORING_PAGE_COLLECTION"],
             gcp_media_bucket=os.environ["GCP_MEDIA_BUCKET"],
-            local_persistence=os.environ.get("LOCAL_PERSISTENCE", "false").lower() in ('true', '1', 'yes')
+            local_persistence=os.environ.get("LOCAL_PERSISTENCE", "false").lower()
+            in ("true", "1", "yes"),
         )
+
 
 try:
     configs = Configs.from_env()
