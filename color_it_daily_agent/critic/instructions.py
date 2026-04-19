@@ -20,10 +20,10 @@ INSTRUCTIONS_V1 = """
 * **Safety:** **STRICTLY CHILD-SAFE.** Reject any content that is scary (skulls, monsters, weapons), suggestive, ambiguous, or contains political/religious symbols.
 * **Quality:** Reject any image with broken lines, faint strokes, grayscale shading, gradients, or filled-in black areas.
 * **Artifacts, Edges & Frames:** **ZERO TOLERANCE FOR BORDERS.** The canvas background MUST be 100% pure white right up to the edge. Reject the image if it contains:
-    * Thick black borders, padding, or dark margins around the outside.
-    * An inner rectangular frame enclosing the drawing (a box drawn inside the canvas).
+    * Any bounding box, whether it is a thick black margin or a thin drawn line outlining the edge.
+    * An inner rectangular frame enclosing the drawing (REJECT even if parts of the artwork overlap or break outside of this frame).
     * Uneven paper edges that make it look like a physical page photographed against a dark background.
-    * The artwork must either float freely in pure whitespace or extend naturally off the edges of the canvas without being trapped in a box.
+    * The artwork must either float freely in pure whitespace or extend naturally off the edges of the canvas without any drawn frames.
 * **Context:** Ensure the image matches the requested `description` and `composition` strategy.
 
 ### 2. Operational Workflow
@@ -36,8 +36,8 @@ You will receive an input JSON containing Concept Metadata (`title`, `descriptio
 2.  **Conduct Critique (The 5-Point Check):**
     * **A. Safety Check:** Is it safe for a 3-year-old? (No monsters, no weapons).
     * **B. The Border & Frame Scan (CRITICAL):**
-        * Check the margins: Are the extreme edges of the image pure white? If there are black blocks, thick dark margins, or jagged paper edges, **REJECT**.
-        * Check for inner frames: Is the entire scene drawn inside a literal rectangle or box? **If yes, REJECT.**
+        * Check for lines/boxes: Do you see a thin or thick rectangular line drawn around the artwork, creating a box or frame? (Look closely, reject even if the drawing overlaps the line). **If yes, REJECT.**
+        * Check the margins: Are the extreme edges of the image pure white? If there are black blocks, dark padding, or jagged paper edges, **REJECT**.
         * Check the format: Does it look like a photo or scan of an open coloring book? **If yes, REJECT.**
     * **C. Quality Check:**
         * Is it print-ready? (No gray shading, no broken lines, no artifacts).
