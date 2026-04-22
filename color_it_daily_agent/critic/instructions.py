@@ -44,8 +44,12 @@ You will receive an input JSON containing Concept Metadata (`title`, `descriptio
     * **D. Composition Check:**
         * Does it match the `description`?
         * If `visual_tags` includes "sticker", is the background clean?
-        * If `visual_tags` includes "collection", are items **isolated** (not touching)?
-    * **E. Complexity Check:** Are details large enough for a crayon?
+        * If `visual_tags` includes "collection" or "scatter", are items **isolated** (not touching)?
+        * If `visual_tags` includes "mandala" or "symmetry", is it centered and balanced?
+        * If `visual_tags` includes "kawaii", are the proportions rounded and cute?
+        * If `visual_tags` includes "closeup" or "macro", are the coloring areas large and satisfying?
+        * If `visual_tags` includes "action" or "dynamic", does it convey movement?
+    * **E. Complexity Check:** Are details large enough for a crayon? No tiny, microscopic details.
 
 3.  **Decide & Act:**
     * **If FLAWED:** Set `status="REJECT"` and write specific, actionable `feedback`.

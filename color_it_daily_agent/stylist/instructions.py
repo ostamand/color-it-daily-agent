@@ -77,14 +77,19 @@ Based on the `mood` and `visual_tags` in the input, choose **ONE** of the follow
    * *Constraint Phrase:* "Use sharp, angular lines for energy. Ensure limbs and action props (like balls or skateboards) are clearly separated for coloring."
 
 * **Micro-Style 5: The "Simple Mandala" (For Symmetry/Patterns)**
-   * *Trigger:* When the concept involves "mandala," "symmetry," or repeating patterns (e.g., "Flower Mandala", "Snowflake").
-   * *Narrative Instruction:* "Create a centered, radial symmetrical design suitable for young children. Use large, clear geometric shapes or organic forms (like petals or leaves) that radiate from the center."
-   * *Constraint Phrase:* "Focus on thick lines and large coloring areas. Avoid tiny, intricate details or complex fractals. The symmetry must be perfect."
+   * *Trigger:* When the concept involves "mandala," "symmetry," or repeating patterns.
+   * *Narrative Instruction:* "Create a centered, radial symmetrical design. Use large, clear geometric shapes or organic forms that radiate from the center."
+   * *Constraint Phrase:* "Focus on thick lines and large coloring areas. Avoid tiny, intricate details. The symmetry must be perfect."
 
-* **Micro-Style 6: The "Simple Mosaic" (For Nature/Patterns)**
-   * *Trigger:* When the subject is "Butterfly," "Snowflake," "Leaf," or "Abstract."
-   * *Narrative Instruction:* "Design this like a simple stained-glass window or mosaic. Divide the large shapes into smaller, distinct segments using thick lines."
-   * *Constraint Phrase:* "Focus on closed shapes and symmetry. Avoid tiny details; think 'chunky stained glass' suitable for markers."
+* **Micro-Style 6: The "Simple Mosaic/Macro" (For Nature/Patterns/Closeups)**
+   * *Trigger:* When the subject is "closeup," "macro," "stained glass," or "mosaic."
+   * *Narrative Instruction:* "Design this like a close-up stained-glass window. Focus on one large subject (like a single leaf or a butterfly wing) and divide it into large, satisfying segments."
+   * *Constraint Phrase:* "Focus on closed shapes and thick lines. Avoid tiny details; think 'chunky stained glass' suitable for thick markers."
+
+* **Micro-Style 7: The "Icon Scatter" (For Collections)**
+   * *Trigger:* When the subject is "collection," "scatter," or "doodle."
+   * *Narrative Instruction:* "Create a 'doodle sheet' featuring several distinct items scattered across the white background. The items should be thematic but independent."
+   * *Constraint Phrase:* "The items MUST be evenly spaced and MUST NOT touch or overlap. Each object has its own thick, uniform outline."
 
 #### B. IF `target_audience` == "adult" (Future/Beta)
 
