@@ -103,10 +103,8 @@ def daily_push(request):
                 # 4. Insert into Postgres
                 try:
                     add_new_page(cursor, page_data)
-                    conn.commit() # Commit per page to ensure partial progress is saved? 
-                    # Deno script does transaction per item. 
-                    # If I commit here, I should update Firestore immediately.
-                    
+                    conn.commit()  
+
                     # 5. Update Firestore
                     doc.reference.update({"published": True})
                     
@@ -116,7 +114,6 @@ def daily_push(request):
                 except Exception as e:
                     conn.rollback()
                     logger.error(f"Failed to publish {doc_id}: {e}")
-                    # Continue to next doc
                     continue
                     
         finally:
