@@ -16,17 +16,16 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Environment Variables
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT")
+FIRESTORE_PROJECT_ID = os.environ.get("FIRESTORE_PROJECT_ID", os.environ.get("GOOGLE_CLOUD_PROJECT"))
 COLORING_PAGE_COLLECTION = os.environ.get("COLORING_PAGE_COLLECTION", "coloring_pages")
-
 
 def run_publisher(dry_run: bool = False, doc_id: str = None, limit: int = 1, force: bool = False):
     """
     Core publishing function. Can be called via Cloud Run Function HTTP request or local CLI.
     """
     try:
-        db_firestore = firestore.Client(project=PROJECT_ID)
+        db_firestore = firestore.Client(project=FIRESTORE_PROJECT_ID)
         collection_ref = db_firestore.collection(COLORING_PAGE_COLLECTION)
 
         if doc_id:

@@ -53,7 +53,7 @@ def get_genai_client() -> genai.Client:
     global _genai_client
     if _genai_client is None:
         use_vertex = os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "true").lower() in ("true", "1", "yes")
-        project = os.environ.get("GOOGLE_CLOUD_PROJECT", "ostamand-264a1")
+        project = os.environ.get("GOOGLE_CLOUD_PROJECT", "coloring-pages-476315")
         location = os.environ.get("GOOGLE_CLOUD_LOCATION", "global")
         if use_vertex:
             _genai_client = genai.Client(vertexai=True, project=project, location=location)
