@@ -8,6 +8,7 @@ load_dotenv()
 @dataclass(frozen=True)
 class Configs:
     gcp_project: str
+    firestore_project_id: str
     gcp_location: str
     llm_model: str
     media_model: str
@@ -18,14 +19,19 @@ class Configs:
 
     @classmethod
     def from_env(cls):
+        gcp_proj = os.environ.get("GOOGLE_CLOUD_PROJECT", "")
+        firestore_proj = os.environ.get("FIRESTORE_PROJECT_ID", gcp_proj)
+        media_bucket = os.environ.get("GCP_MEDIA_BUCKET", "color-it-daily-agent-assets")
+
         return cls(
-            gcp_project=os.environ["GOOGLE_CLOUD_PROJECT"],
-            gcp_location=os.environ["GOOGLE_CLOUD_LOCATION"],
-            llm_model=os.environ["LLM_MODEL"],
-            media_model=os.environ["MEDIA_MODEL"],
-            embedding_collection=os.environ["EMBEDDING_COLLECTION"],
-            coloring_page_collection=os.environ["COLORING_PAGE_COLLECTION"],
-            gcp_media_bucket=os.environ["GCP_MEDIA_BUCKET"],
+            gcp_project=gcp_proj,
+            firestore_project_id=firestore_proj,
+            gcp_location=os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1"),
+            llm_model=os.environ.get("LLM_MODEL", "gemini-3-flash-preview"),
+            media_model=os.environ.get("MEDIA_MODEL", "gemini-3.1-flash-image-preview"),
+            embedding_collection=os.environ.get("EMBEDDING_COLLECTION", "coloring_pages_vectors"),
+            coloring_page_collection=os.environ.get("COLORING_PAGE_COLLECTION", "coloring_pages"),
+            gcp_media_bucket=media_bucket,
             local_persistence=os.environ.get("LOCAL_PERSISTENCE", "false").lower()
             in ("true", "1", "yes"),
         )

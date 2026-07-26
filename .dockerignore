@@ -1,0 +1,30 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Environment configs & secrets
+.env
+.env.*
+service-account.json
+*.pem
+*.key
+
+# Git and OS metadata
+.git/
+.gitignore
+.DS_Store
+
+# Temporary & migration scripts
+migration-script.txt
+seed_collections.py
+scratch/

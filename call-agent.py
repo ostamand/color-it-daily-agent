@@ -1,3 +1,33 @@
+"""
+==============================================================================
+Color It Daily Agent - Test Client Execution Script
+==============================================================================
+
+This utility script connects to the Color It Daily ADK FastAPI agent service,
+creates an active session, and triggers a run request.
+
+Usage Examples:
+---------------
+1. Run locally against default collection ('Wonder Daily'):
+   python call-agent.py --endpoint http://localhost:8080
+
+2. Run against a specific collection (e.g., 'Halloween'):
+   python call-agent.py --endpoint http://localhost:8080 --collection "Halloween"
+
+3. Run in local-only no-persistence mode (saves assets locally to ./tmp/color_it_daily/):
+   python call-agent.py --endpoint http://localhost:8080 --collection "Wonder Daily" --no-persist
+
+4. Run against deployed GCP Cloud Run service:
+   python call-agent.py --endpoint https://color-it-daily-agent-uc.a.run.app --collection "Wonder Daily"
+
+Arguments:
+----------
+  --endpoint    (Required) The base URL of the FastAPI agent server.
+  --collection  (Optional) The target collection name (e.g. 'Wonder Daily', 'Halloween').
+  --no-persist  (Optional) Disable Firestore & GCS writes; save all assets and document.json locally.
+==============================================================================
+"""
+
 import argparse
 import os
 import requests
@@ -22,13 +52,12 @@ def get_cloud_token():
         return None
 
 
-def main(endpoint: str):
+def main(endpoint: str, collection_name: str = None, no_persist: bool = False):
     token = get_cloud_token()
 
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
     # list available apps
-    # curl -X GET -H "Authorization: Bearer $TOKEN" $APP_URL/list-apps
     response = requests.get(f"{endpoint}/list-apps", headers=headers)
     response.raise_for_status()
     print("Apps:", response.json())
@@ -43,7 +72,6 @@ def main(endpoint: str):
     print("Session:", response.json())
 
     # run the agent
-
     from datetime import datetime
     now = datetime.now()
     current_date_str = now.strftime("%Y-%m-%d")
@@ -51,6 +79,10 @@ def main(endpoint: str):
     user_request = {
         "current_date": current_date_str,
     }
+    if collection_name:
+        user_request["collection_name"] = collection_name
+    if no_persist:
+        user_request["no_persist"] = True
 
     payload = {
         "app_name": APP_NAME,
@@ -63,16 +95,19 @@ def main(endpoint: str):
         "streaming": False,
     }
     
+    print(f"Sending payload to {endpoint}/run: {json.dumps(user_request, indent=2)}")
     response = requests.post(f"{endpoint}/run", headers=headers, json=payload)
     response.raise_for_status()
 
     print("Assets generated successfully.")
+    print("Response:", response.json())
 
 
-# python call-agent.py --endpoint http://0.0.0.0:8080
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--endpoint", type=str, required=True)
+    parser = argparse.ArgumentParser(description="Trigger Color It Daily Agent runs")
+    parser.add_argument("--endpoint", type=str, required=True, help="Base URL of the agent service")
+    parser.add_argument("--collection", type=str, default=None, help="Target collection name")
+    parser.add_argument("--no-persist", action="store_true", help="Disable persistence and save assets locally")
     args = parser.parse_args()
     load_dotenv()
-    main(args.endpoint)
+    main(args.endpoint, collection_name=args.collection, no_persist=args.no_persist)

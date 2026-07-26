@@ -1,13 +1,18 @@
 import os
+import json
+import logging
 from typing import List, Optional
-from datetime import datetime
-from google.cloud import firestore
+from datetime import datetime, timezone
 from google.cloud.firestore_v1.vector import Vector
 
 from google.adk.tools.tool_context import ToolContext
 from ...lib.embeddings import generate_embedding
 from ...lib.database import get_db
+from ...lib.persistence import update_document, get_local_output_dir
+from ...context import get_agent_context
 from ...app_configs import configs
+
+logger = logging.getLogger(__name__)
 
 def publish_to_firestore(
     title: str,
@@ -17,53 +22,29 @@ def publish_to_firestore(
     mood: str,
     target_audience: str,
     positive_prompt: str,
-    negative_prompt: str,
     optimized_image_path: str,
     status: str,
     feedback: str,
+    negative_prompt: str = "",
     tool_context: Optional[ToolContext] = None
 ) -> str:
     """
-    Saves the approved coloring page metadata to Firestore.
-    
-    Args:
-        title (str): The title of the coloring page.
-        reasoning (str): The context or information used to decide the concept.
-        description (str): The visual description.
-        visual_tags (List[str]): List of tags.
-        mood (str): The emotional tone.
-        target_audience (str): The target audience.
-        positive_prompt (str): The positive prompt used.
-        negative_prompt (str): The negative prompt used.
-        optimized_image_path (str): The GCS path to the final asset.
-        status (str): The final status (e.g. "PASS").
-        feedback (str): The critic's feedback.
-        tool_context (Optional[ToolContext]): The tool context for ADK workflow.
-        
-    Returns:
-        str: A success message with the document ID.
+    Saves the approved coloring page metadata to Firestore (or local file if no_persist).
     """
-    db = get_db()
+    ctx = get_agent_context()
     
-    # 1. Prepare Data
-    published_date = datetime.now()
-    
-    # 2. Extract ID from optimized_image_path (the uuid generated during production)
-    # Example: gs://bucket/optimized/abc-123.png -> abc-123
-    filename = os.path.basename(optimized_image_path)
-    doc_id = os.path.splitext(filename)[0]
-    
-    # Generate Embedding for semantic search
-    embedding_vector = generate_embedding(description, task_type="RETRIEVAL_DOCUMENT")
-    
-    # 3. Transactional Write (Recommended) or Batch
-    # We want to ensure both the metadata and the vector are saved.
-    batch = db.batch()
-    
-    # Create document ref using the extracted ID
-    new_doc_ref = db.collection(configs.coloring_page_collection).document(doc_id)
-    
-    # Data for the main collection (Metadata)
+    if ctx:
+        doc_id = ctx.document_id
+        collection_name = ctx.collection_name
+        no_persist = ctx.no_persist
+    else:
+        filename = os.path.basename(optimized_image_path)
+        doc_id = os.path.splitext(filename)[0]
+        collection_name = "Wonder Daily"
+        no_persist = False
+
+    published_date = datetime.now(timezone.utc)
+
     metadata_payload = {
         "published": False,
         "title": title,
@@ -77,28 +58,40 @@ def publish_to_firestore(
         "optimized_image_path": optimized_image_path,
         "status": status,
         "feedback": feedback,
-        "published_date": published_date,
-        # Flatten tags for easier basic filtering if needed
-        "tags_search": visual_tags
+        "collection_name": collection_name,
+        "published_date": published_date.isoformat() if no_persist else published_date,
+        "tags_search": visual_tags,
     }
-    
-    # Data for the vector collection (Similarity Search)
-    # We use the SAME document ID so we can easily join them later
-    vector_ref = db.collection(configs.embedding_collection).document(doc_id)
-    vector_payload = {
-        "embedding": Vector(embedding_vector),
-        "published_date": published_date # duplicate for sorting if needed
-    }
-    
-    # Queue operations
-    batch.set(new_doc_ref, metadata_payload)
-    batch.set(vector_ref, vector_payload)
-    
-    # Commit
+
+    if no_persist:
+        update_document(doc_id, metadata_payload, no_persist=True)
+        logger.info(f"[NO_PERSIST] Published document metadata locally for ID {doc_id}")
+        if tool_context:
+            tool_context.actions.escalate = True
+        return f"SUCCESS: Saved '{title}' locally to review (no_persist=True) with ID {doc_id}"
+
+    db = get_db()
+    batch = db.batch()
+    new_doc_ref = db.collection(configs.coloring_page_collection).document(doc_id)
+
+    # Generate Embedding for semantic search
+    try:
+        embedding_vector = generate_embedding(description, task_type="RETRIEVAL_DOCUMENT")
+        if embedding_vector:
+            vector_ref = db.collection(configs.embedding_collection).document(doc_id)
+            vector_payload = {
+                "embedding": Vector(embedding_vector),
+                "published_date": published_date
+            }
+            batch.set(vector_ref, vector_payload, merge=True)
+    except Exception as e:
+        logger.warning(f"Could not generate embedding for doc '{doc_id}': {e}")
+
+    batch.set(new_doc_ref, metadata_payload, merge=True)
     batch.commit()
 
-    # Signal termination of the LoopAgent if applicable
     if tool_context:
         tool_context.actions.escalate = True
-    
+
     return f"SUCCESS: Published '{title}' to Firestore with ID {doc_id}"
+

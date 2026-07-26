@@ -5,14 +5,15 @@ from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.models import Gemini
 from google.adk.runners import InMemoryRunner
 
-from .instructions import INSTRUCTIONS_V1
+from .instructions import get_stylist_instructions
 from ..app_configs import configs
 
 stylist = LlmAgent(
     name="Stylist",
-    instruction=INSTRUCTIONS_V1,
+    instruction=get_stylist_instructions,
     model=Gemini(model=configs.llm_model),  
 )
+
 
 async def main():
     from datetime import datetime

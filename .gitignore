@@ -220,3 +220,6 @@ venv
 
 service-account.json
 Makefile
+
+tmp/
+sessions.db

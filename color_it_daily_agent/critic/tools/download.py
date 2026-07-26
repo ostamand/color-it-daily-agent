@@ -4,16 +4,22 @@ from google.cloud import storage
 
 def download_image(gcs_path: str) -> str:
     """
-    Downloads an image from Google Cloud Storage to a local temporary path.
+    Downloads an image from Google Cloud Storage to a local temporary path,
+    or returns the local path directly if running in local/no-persist mode.
     
     Args:
-        gcs_path (str): The GCS path (e.g., gs://bucket-name/path/to/image.png)
+        gcs_path (str): The GCS path (e.g., gs://bucket-name/path/to/image.png) or local file path.
         
     Returns:
-        str: The local file path where the image was downloaded.
+        str: The local file path where the image is available.
     """
+    # If the file already exists locally (e.g. under no_persist mode), return it directly
+    if os.path.exists(gcs_path):
+        print(f"Image is available locally at '{gcs_path}'")
+        return gcs_path
+
     if not gcs_path.startswith("gs://"):
-        raise ValueError(f"Invalid GCS path: {gcs_path}")
+        raise ValueError(f"Invalid image path (not a GCS path and file does not exist): {gcs_path}")
 
     # Parse GCS path
     path_parts = gcs_path[5:].split("/", 1)

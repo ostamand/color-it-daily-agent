@@ -39,7 +39,6 @@ async def main():
 
     print(f"Starting Publisher Agent for {current_date_str}...")
 
-    # Example user request payload
     user_request = {
         "current_date": current_date_str,
     }

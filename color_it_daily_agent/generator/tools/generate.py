@@ -1,5 +1,7 @@
+import os
 import uuid
 import base64
+import logging
 from typing import Optional
 
 from google import genai
@@ -7,20 +9,24 @@ from google.genai import types
 from google.cloud import storage
 
 from color_it_daily_agent.app_configs import configs
+from color_it_daily_agent.context import get_agent_context
+from color_it_daily_agent.lib.persistence import get_local_output_dir
+
+logger = logging.getLogger(__name__)
 
 def generate_image(positive_prompt: str, negative_prompt: Optional[str] = None) -> str:
     """
-    Generates an image using the configured media model and uploads it to GCS.
+    Generates an image using the configured media model and uploads it to GCS (or saves locally if no_persist).
     
     Args:
-        positive_prompt (str): The description of what to generate.
-        negative_prompt (str, optional): The description of what to avoid.
+        positive_prompt (str): The detailed description of what to generate.
+        negative_prompt (str, optional): Deprecated / unused.
 
     Returns:
-        str: The GCS path of the raw generated image (e.g., gs://bucket/raw/uuid.png).
+        str: The GCS path (or local file path if no_persist) of the raw generated image.
     """
-    # Generate a unique ID for this generation
-    generation_id = str(uuid.uuid4())
+    ctx = get_agent_context()
+    generation_id = ctx.document_id if ctx else str(uuid.uuid4())
 
     ai_client = genai.Client(
         vertexai=True,
@@ -28,23 +34,15 @@ def generate_image(positive_prompt: str, negative_prompt: Optional[str] = None) 
         location=configs.gcp_location,
     )
 
-    storage_client = storage.Client(project=configs.gcp_project)
-
-    # Combine prompts if negative prompt is provided.
-    # The 'gemini-2.5-flash-image' model uses the generate_content API, 
-    # where negative prompts are typically handled via the text prompt instructions.
     full_prompt_text = positive_prompt
-    if negative_prompt:
-        full_prompt_text = f"{positive_prompt}\n\nNegative prompt: {negative_prompt}"
-
+    logger.info(f"\n==================== [GENERATING IMAGE PROMPT] ====================\n{positive_prompt}\n===================================================================")
     prompt_part = types.Part.from_text(text=full_prompt_text)
 
     contents = [
         types.Content(role="user", parts=[prompt_part]),
     ]
 
-    # Configuration for image generation
-    # ImageConfig for generate_content does not support 'negative_prompt' directly.
+
     generate_content_config = types.GenerateContentConfig(
         response_modalities=["IMAGE"],
         safety_settings=[
@@ -92,6 +90,15 @@ def generate_image(positive_prompt: str, negative_prompt: Optional[str] = None) 
         else:
             image_bytes = image_data
 
+        if ctx and ctx.no_persist:
+            local_dir = get_local_output_dir(generation_id)
+            raw_path = os.path.join(local_dir, "raw.png")
+            with open(raw_path, "wb") as f:
+                f.write(image_bytes)
+            logger.info(f"[NO_PERSIST] Raw image saved locally to '{raw_path}'")
+            return raw_path
+
+        storage_client = storage.Client(project=configs.gcp_project)
         filename = f"raw/{generation_id}.png"
         bucket = storage_client.bucket(configs.gcp_media_bucket)
         blob = bucket.blob(filename)
@@ -100,8 +107,9 @@ def generate_image(positive_prompt: str, negative_prompt: Optional[str] = None) 
         return f"gs://{configs.gcp_media_bucket}/{filename}"
 
     except Exception as e:
-        print(f"❌ Image generation failed: {e}")
+        logger.error(f"❌ Image generation failed: {e}")
         raise e
+
 
 if __name__ == "__main__":
     # Test the tool

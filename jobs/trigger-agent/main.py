@@ -78,6 +78,11 @@ def trigger_agent(request):
         user_request = {
             "current_date": current_date_str,
         }
+        if os.environ.get("COLLECTION_NAME"):
+            user_request["collection_name"] = os.environ.get("COLLECTION_NAME")
+        if os.environ.get("NO_PERSIST", "").lower() in ("true", "1", "yes"):
+            user_request["no_persist"] = True
+
 
         payload = {
             "app_name": APP_NAME,

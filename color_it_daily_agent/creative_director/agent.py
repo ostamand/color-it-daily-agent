@@ -5,17 +5,18 @@ from google.adk.agents import LlmAgent
 from google.adk.models import Gemini
 from google.adk.runners import InMemoryRunner
 
-from .instructions import INSTRUCTIONS_V1
+from .instructions import get_creative_director_instructions
 from .tools.calendar import get_calendar_events
 from .tools.history import get_recent_history, search_past_concepts
 from ..app_configs import configs
 
 creative_director = LlmAgent(
     name="CreativeDirector",
-    instruction=INSTRUCTIONS_V1,
+    instruction=get_creative_director_instructions,
     model=Gemini(model=configs.llm_model),  
     tools=[get_calendar_events, get_recent_history, search_past_concepts],
 )
+
 
 async def main():
     from datetime import datetime

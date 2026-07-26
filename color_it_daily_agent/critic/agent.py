@@ -5,17 +5,18 @@ from google.adk.agents import LlmAgent
 from google.adk.models import Gemini
 from google.adk.runners import InMemoryRunner
 
-from .instructions import INSTRUCTIONS_V1
+from .instructions import get_critic_instructions
 from .tools.download import download_image
 from .tools.publish import publish_to_firestore
 from ..app_configs import configs
 
 critic = LlmAgent(
     name="Critic",
-    instruction=INSTRUCTIONS_V1,
+    instruction=get_critic_instructions,
     model=Gemini(model=configs.llm_model),
     tools=[download_image, publish_to_firestore]
 )
+
 
 async def main():
     runner = InMemoryRunner(agent=critic)
