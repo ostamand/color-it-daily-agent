@@ -11,8 +11,8 @@ Usage Examples:
 1. Run locally against default collection ('Wonder Daily'):
    python call-agent.py --endpoint http://localhost:8080
 
-2. Run against a specific collection (e.g., 'Halloween'):
-   python call-agent.py --endpoint http://localhost:8080 --collection "Halloween"
+2. Run against a specific collection with target keyword targeting:
+   python call-agent.py --endpoint http://localhost:8080 --collection "Wonder Daily" --keyword "dinosaur colouring pages"
 
 3. Run in local-only no-persistence mode (saves assets locally to ./tmp/color_it_daily/):
    python call-agent.py --endpoint http://localhost:8080 --collection "Wonder Daily" --no-persist
@@ -22,9 +22,10 @@ Usage Examples:
 
 Arguments:
 ----------
-  --endpoint    (Required) The base URL of the FastAPI agent server.
-  --collection  (Optional) The target collection name (e.g. 'Wonder Daily', 'Halloween').
-  --no-persist  (Optional) Disable Firestore & GCS writes; save all assets and document.json locally.
+  --endpoint        (Required) The base URL of the FastAPI agent server.
+  --collection      (Optional) The target collection name (e.g. 'Wonder Daily', 'Halloween').
+  --keyword / -k    (Optional) Target SEO keyword phrase (e.g. 'dinosaur colouring pages').
+  --no-persist      (Optional) Disable Firestore & GCS writes; save all assets and document.json locally.
 ==============================================================================
 """
 
@@ -52,7 +53,7 @@ def get_cloud_token():
         return None
 
 
-def main(endpoint: str, collection_name: str = None, no_persist: bool = False):
+def main(endpoint: str, collection_name: str = None, target_keyword: str = None, no_persist: bool = False):
     token = get_cloud_token()
 
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
@@ -81,6 +82,8 @@ def main(endpoint: str, collection_name: str = None, no_persist: bool = False):
     }
     if collection_name:
         user_request["collection_name"] = collection_name
+    if target_keyword:
+        user_request["target_keyword"] = target_keyword
     if no_persist:
         user_request["no_persist"] = True
 
@@ -107,7 +110,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Trigger Color It Daily Agent runs")
     parser.add_argument("--endpoint", type=str, required=True, help="Base URL of the agent service")
     parser.add_argument("--collection", type=str, default=None, help="Target collection name")
+    parser.add_argument("--keyword", "-k", type=str, default=None, help="Target SEO keyword phrase (e.g. 'dinosaur colouring pages')")
     parser.add_argument("--no-persist", action="store_true", help="Disable persistence and save assets locally")
     args = parser.parse_args()
     load_dotenv()
-    main(args.endpoint, collection_name=args.collection, no_persist=args.no_persist)
+    main(args.endpoint, collection_name=args.collection, target_keyword=args.keyword, no_persist=args.no_persist)

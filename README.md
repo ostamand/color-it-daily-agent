@@ -12,7 +12,8 @@
 * **Dynamic Collection & Creative Skills:** Supports targeted collections (e.g. `Wonder Daily`, `A Pirate's Life`, `Halloween`). Automatically pulls and validates the collection's `creative_skill`, `heading`, and `description` style, transforming agent prompts dynamically.
 * **Studio Quality Loop:** A feedback loop between the "Stylist" (Prompt Engineer) and "Critic" (Multimodal QA Agent) ensures every image adheres to the collection's target artistic style and strict **No Text** mandate.
 * **Pre-Agent Document Persistence:** Pre-creates a document record (`status: "running"`) in Firestore (or local JSON) with a unique document ID before calling the agent.
-* **Firestore Input Overrides:** Automatically checks Firestore collection `coloritdaily_config/agent_input` to dynamically override POST request inputs without needing extra GCS buckets.
+* **SEO Target Keyword Targeting:** Supports a `target_keyword` option (e.g. `"dinosaur colouring pages"`). Directs the Creative Director and Stylist to produce highly relevant visual subjects, aligned descriptions, and targeted `visual_tags` to capture search traffic from Keyword Planner.
+* **Firestore Input Overrides:** Automatically checks Firestore collection `coloritdaily_config/agent_input` to dynamically override POST request inputs (e.g. `target_keyword`, `collection_name`, `no_persist`).
 * **No-Persistence Local Mode (`no_persist: true`)**: Local testing mode that skips Cloud Storage and Firestore, saving raw assets, vector outputs, and the document record (`document.json`) to a local directory for review.
 * **Print-Ready Optimization:** Automatically converts AI-generated raster images into crisp, scalable Vectors (SVG) using `potrace`, ensuring 100% black-and-white lines with no gray shading.
 * **Strict Safety & No Text Mandate:** A zero-tolerance policy enforced by the Critic agent prevents scary/suggestive content and rejects any written text, letters, or typography.

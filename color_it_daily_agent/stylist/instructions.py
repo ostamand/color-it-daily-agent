@@ -45,22 +45,35 @@ Incorporate the following Creative Skill style description into your detailed pr
 "{creative_skill}"{collection_description_block}
 """
 
-def get_stylist_instructions(creative_skill: str = None, collection_context: str = None) -> str:
+def get_stylist_instructions(creative_skill: str = None, collection_context: str = None, target_keyword: str = None) -> str:
     ctx = get_agent_context()
     if not creative_skill:
         creative_skill = ctx.creative_skill if ctx else "Thick Line Art – Bold, clean outlines with no shading or fills. Pure black-and-white coloring book style suitable for children ages 3-10."
     if collection_context is None and ctx:
         collection_context = ctx.collection_context
+    if target_keyword is None and ctx:
+        target_keyword = ctx.target_keyword
 
     desc_block = ""
     if collection_context:
         desc_block = f"\n\n**Collection Common Theme:**\n\"{collection_context}\"\nEnsure the visual prompt elements align with this collection vision so the page feels part of a cohesive series."
 
+    keyword_block = ""
+    if target_keyword:
+        keyword_block = (
+            f"\n\n**SEO Target Keyword Focus:**\n\"{target_keyword}\"\n"
+            f"Ensure the visual prompt elements and `visual_tags` array reflect highly relevant subjects and search terms for \"{target_keyword}\"."
+        )
+
     instructions = INSTRUCTIONS_TEMPLATE.format(
         creative_skill=creative_skill,
         collection_description_block=desc_block
-    )
-    logger.info(f"✨ [DYNAMIC PROMPT] Stylist System Instructions initialized with skill: '{creative_skill}'")
+    ) + keyword_block
+
+    if target_keyword:
+        logger.info(f"✨ [DYNAMIC PROMPT] Stylist System Instructions updated with target keyword: '{target_keyword}'")
+    else:
+        logger.info(f"✨ [DYNAMIC PROMPT] Stylist System Instructions initialized with skill: '{creative_skill}'")
     return instructions
 
 INSTRUCTIONS_V1 = get_stylist_instructions()

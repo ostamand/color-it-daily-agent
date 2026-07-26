@@ -72,7 +72,7 @@ Output **ONLY** valid JSON:
 ```json
 {{
   "title": "String (Short, catchy title)",
-  "reasoning": "String (Customer-facing explanation of why this creative concept was chosen today)",
+  "reasoning": "String (Engaging, customer-facing explanation for kids/parents. NEVER mention keywords, SEO, or search targeting terms!)",
   "description": "String (Rich visual description detailing the main subject, action, framing, and background context)",
   "visual_tags": ["String", "String", "String", "String"],
   "target_audience": "child",
@@ -95,22 +95,43 @@ Output **ONLY** valid JSON:
 ```
 """
 
-def get_creative_director_instructions(creative_skill: str = None, collection_context: str = None) -> str:
+def get_creative_director_instructions(creative_skill: str = None, collection_context: str = None, target_keyword: str = None) -> str:
     ctx = get_agent_context()
     if not creative_skill:
         creative_skill = ctx.creative_skill if ctx else "Thick Line Art – Bold, clean outlines with no shading or fills. Pure black-and-white coloring book style suitable for children ages 3-10."
     if collection_context is None and ctx:
         collection_context = ctx.collection_context
+    if target_keyword is None and ctx:
+        target_keyword = ctx.target_keyword
 
     desc_block = ""
     if collection_context:
         desc_block = f"\n   * Collection Common Theme & Vision: \"{collection_context}\" (Ensure all concepts fit this overarching collection vision)."
 
+    keyword_block = ""
+    if target_keyword:
+        keyword_block = (
+            f"\n\n### 🎯 KEYWORD TARGETING MANDATE (SEO OPTIMIZATION)\n"
+            f"**Target Keyword Phrase:** \"{target_keyword}\"\n"
+            f"1. **Core Subject Focus**: Your concept MUST directly target and center around \"{target_keyword}\". The main subject, action, and scene elements must be 100% relevant to this phrase.\n"
+            f"2. **CUSTOMER-FACING REASONING MANDATE (CRITICAL)**:\n"
+            f"   - The `reasoning` field is published directly to customers on our website/app. **NEVER** mention keywords, SEO, search terms, or target phrases in `reasoning` (e.g. NEVER write 'Selected to target dinosaur colouring pages' or 'Targeting SEO keyword').\n"
+            f"   - Write `reasoning` naturally as an engaging, child-friendly explanation of why this creative artwork is exciting and delightful today.\n"
+            f"3. **SEO Metadata Alignment**:\n"
+            f"   - `title`: Naturally incorporate the intent of \"{target_keyword}\".\n"
+            f"   - `description`: Write a rich visual description centered around \"{target_keyword}\".\n"
+            f"   - `visual_tags`: MUST include exact terms and relevant variations of \"{target_keyword}\" for high search relevance."
+        )
+
     instructions = INSTRUCTIONS_TEMPLATE.format(
         creative_skill=creative_skill,
         collection_description_block=desc_block
-    )
-    logger.info(f"🎨 [DYNAMIC PROMPT] Creative Director System Instructions initialized with skill: '{creative_skill}'")
+    ) + keyword_block
+
+    if target_keyword:
+        logger.info(f"🎨 [DYNAMIC PROMPT] Creative Director System Instructions updated with target keyword: '{target_keyword}'")
+    else:
+        logger.info(f"🎨 [DYNAMIC PROMPT] Creative Director System Instructions initialized with skill: '{creative_skill}'")
     return instructions
 
 INSTRUCTIONS_V1 = get_creative_director_instructions()

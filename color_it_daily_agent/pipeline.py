@@ -39,6 +39,12 @@ def prepare_agent_execution(input_payload: Dict[str, Any]) -> Tuple[AgentContext
     no_persist = bool(merged_payload.get("no_persist", False))
     merged_payload["no_persist"] = no_persist
 
+    target_keyword = merged_payload.get("target_keyword")
+    if target_keyword:
+        target_keyword = str(target_keyword).strip()
+        merged_payload["target_keyword"] = target_keyword
+        logger.info(f"🎯 Target Keyword set: '{target_keyword}'")
+
     # 2. Validate Collection
     collection_data = get_collection(collection_name)
     if not collection_data:
@@ -66,6 +72,7 @@ def prepare_agent_execution(input_payload: Dict[str, Any]) -> Tuple[AgentContext
         current_date=current_date,
         collection_name=collection_name,
         no_persist=no_persist,
+        target_keyword=target_keyword,
         collection_context=collection_context,
         collection_description=collection_description,
         creative_skill=creative_skill,
