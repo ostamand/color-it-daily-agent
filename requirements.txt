@@ -6,3 +6,4 @@ google-adk
 python-dotenv
 cairosvg
 Pillow
+SQLAlchemy
