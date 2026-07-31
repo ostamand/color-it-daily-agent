@@ -107,11 +107,13 @@ def main(endpoint: str, collection_name: str = None, target_keyword: str = None,
 
 
 if __name__ == "__main__":
+    load_dotenv()
+    
     parser = argparse.ArgumentParser(description="Trigger Color It Daily Agent runs")
     parser.add_argument("--endpoint", type=str, required=True, help="Base URL of the agent service")
     parser.add_argument("--collection", type=str, default=None, help="Target collection name")
     parser.add_argument("--keyword", "-k", type=str, default=None, help="Target SEO keyword phrase (e.g. 'dinosaur colouring pages')")
     parser.add_argument("--no-persist", action="store_true", help="Disable persistence and save assets locally")
     args = parser.parse_args()
-    load_dotenv()
+    
     main(args.endpoint, collection_name=args.collection, target_keyword=args.keyword, no_persist=args.no_persist)
