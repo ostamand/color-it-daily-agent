@@ -21,6 +21,7 @@ app: FastAPI = get_fast_api_app(
     session_service_uri=SESSION_SERVICE_URI,
     allow_origins=ALLOWED_ORIGINS,
     web=SERVE_WEB_INTERFACE,
+    extra_plugins=["color_it_daily_agent.lib.trace_plugin.PromptTracePlugin"],
 )
 
 

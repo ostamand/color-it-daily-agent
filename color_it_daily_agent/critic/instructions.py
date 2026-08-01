@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 from color_it_daily_agent.context import get_agent_context
 
 logger = logging.getLogger(__name__)
@@ -39,27 +40,25 @@ INSTRUCTIONS_TEMPLATE = """
 ### 2. Operational Workflow
 You will receive an input JSON containing Concept Metadata, Production Data, and the **Asset Path** (`optimized_image_path`). Follow this sequence:
 
-1. **Download & Inspect:**
-   * **MANDATORY:** Call `download_image(gcs_path=optimized_image_path)`.
-   * Visually inspect the downloaded image using your multimodal vision capabilities.
+1. **Visually Inspect Image:**
+   * **MANDATORY:** Call `inspect_image_visually(image_path=optimized_image_path, concept_description=description)`.
+   * Read the visual inspection report returned from the tool call.
 
-2. **Conduct Critique (The 7-Point Check):**
-   * **A. Safety Check:** Is it safe for children ages 3-10? (No scary elements, monsters, or weapons).
-   * **B. Text & Typography Check (CRITICAL):** Does the image contain ANY written words, letters, numbers, or text signs? If yes, **REJECT**.
-   * **C. Border & Frame Scan (CRITICAL):**
-       * Are there any outer bounding boxes, scan lines, or drawn frames enclosing the artwork? If yes, **REJECT**.
-       * Are the extreme canvas margins 100% pure white? If there are black blocks, dark padding, or paper edges, **REJECT**.
-   * **D. Quality & Line Check:**
-       * Are lines clean, vector-like, and unbroken? Is the background pure white with zero gray shading, gradients, or texture fills? If flawed, **REJECT**.
-   * **E. Creative Skill Style Check (CRITICAL):**
-       * Does the image visually embody the requested Creative Skill: "{creative_skill}"?
-       * If the style specifies clean closed shapes, thick line art, or specific symmetry/formatting, verify that the visual output matches. If the image violates the requested style, **REJECT**.
-   * **F. Composition Check:**
-       * Does the artwork match the subject described in `description`?
-   * **G. Complexity Check:** Are details large enough for a child to color comfortably? Reject micro-clutter or tiny uncolorable noise.
+2. **Conduct Critique:**
+   * Analyze the visual inspection report from `inspect_image_visually`:
+     * **Borders & Frame Check (CRITICAL):** If `has_border_or_frame` is true, **REJECT**.
+     * **Text & Typography Check (CRITICAL):** If `has_text_or_letters` is true, **REJECT**.
+     * **Safety Check:** If `is_child_safe` is false, **REJECT**.
+     * **Line Quality & Shading Check:** If `has_shading_or_gradients` is true, **REJECT**.
+     * **Creative Skill Style Check:** If `matches_creative_skill` is false, **REJECT**.
+     * **Complexity & Colorability Check:** If `is_comfortable_to_color` is false, **REJECT**.
+     * **Subject & Prompt Alignment Check (CRITICAL):** If `matches_prompt` is false, **REJECT**.
+     * **Anatomy, Posing & Scene Coherence Check (CRITICAL):** If `has_good_anatomy_and_coherence` is false, **REJECT**.
 
 3. **Decide & Act:**
-   * **If FLAWED, HAS TEXT, or STYLE MISMATCH:** Set `status="REJECT"` and write specific, actionable `feedback` explaining why it failed and how to fix the prompt.
+   * **If FLAWED, HAS TEXT, BORDER, SHADING, STYLE MISMATCH, OVERLY COMPLEX, PROMPT MISALIGNED, or ANATOMICALLY INCOHERENT:** 
+     * Set `status="REJECT"`.
+     * In `feedback`, list **EVERY** specific reason from `rejection_reasons` and explain precisely how **The Stylist** must rewrite `positive_prompt` (e.g. *"Rejection reasons: [anatomical flaw / floating limb]. Fix: Explicitly specify natural limb placement and clear spatial grounding in prompt."*).
    * **If PERFECT & STYLE COMPLIANT:** Set `status="PASS"` and **IMMEDIATELY** call `publish_to_firestore(...)` to save the record.
 
 ---
@@ -83,10 +82,18 @@ Output **ONLY** valid JSON:
 ```
 """
 
-def get_critic_instructions(creative_skill: str = None, collection_context: str = None) -> str:
+def get_critic_instructions(creative_skill: Any = None, collection_context: str = None, *args, **kwargs) -> str:
+    if not isinstance(creative_skill, str):
+        creative_skill = None
+    if not isinstance(collection_context, str):
+        collection_context = None
+
     ctx = get_agent_context()
-    if not creative_skill:
-        creative_skill = ctx.creative_skill if ctx else "Thick Line Art – Bold, clean outlines with no shading or fills. Pure black-and-white coloring book style suitable for children ages 3-10."
+    if not creative_skill and ctx and ctx.creative_skill:
+        creative_skill = ctx.creative_skill
+    if not creative_skill or not creative_skill.strip():
+        creative_skill = "Standard Clean Line Art – Clean outlines with no shading or fills. Pure black-and-white coloring book style."
+
     if collection_context is None and ctx:
         collection_context = ctx.collection_context
 

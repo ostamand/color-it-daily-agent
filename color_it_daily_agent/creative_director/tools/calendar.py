@@ -19,8 +19,6 @@ def get_calendar_events(target_date_str: str = None) -> dict:
               including relative timing (e.g., ['Christmas (2 days away)']). Returns ['None nearby'] if empty.
             - fun_observance (str): A specific niche or fun observance for the day
               (e.g., 'National Pizza Day' or 'Penguin Awareness Day'). Returns 'None specific today' if no match.
-            - suggestion_heuristic (list[str]): A list of creative prompt triggers based on the season
-              (e.g., ['Snow', 'Cozy indoors']).
     """
 
     # 1. Setup Date (Robust Parsing)
@@ -70,27 +68,9 @@ def get_calendar_events(target_date_str: str = None) -> dict:
     fun_event = fun_observances_db.get(key)
 
     # 5. Construct the Context Object
-    context_data = {
+    return {
         "current_date": target_date.isoformat(),
         "season": season,
         "major_holidays": major_holidays if major_holidays else ["None nearby"],
         "fun_observance": fun_event if fun_event else "None specific today",
-        "suggestion_heuristic": [],
     }
-
-    # 6. Add Heuristics to guide the LLM (Optional logic boost)
-    if season == "Winter":
-        context_data["suggestion_heuristic"].append(
-            "Snow, cozy indoors, warm clothes, ice sports"
-        )
-    elif season == "Summer":
-        context_data["suggestion_heuristic"].append(
-            "Beach, sun, camping, insects, ice cream"
-        )
-
-    if fun_event:
-        context_data["suggestion_heuristic"].append(
-            f"Create something related to {fun_event}"
-        )
-
-    return context_data

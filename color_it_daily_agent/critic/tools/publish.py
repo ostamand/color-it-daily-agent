@@ -61,7 +61,6 @@ def publish_to_firestore(
         "collection_name": collection_name,
         "target_keyword": ctx.target_keyword if ctx else None,
         "published_date": published_date.isoformat() if no_persist else published_date,
-        "tags_search": visual_tags,
     }
 
     if no_persist:

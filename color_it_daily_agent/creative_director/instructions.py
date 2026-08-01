@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 from color_it_daily_agent.context import get_agent_context
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ You will receive an input JSON containing `{{\"current_date\": \"YYYY-MM-DD\"}}`
 1. **Analyze Context (Calendar & History):**
    * Extract `current_date` from input.
    * Call `get_calendar_events(target_date_str=current_date)` to check seasonal events and holidays.
-   * Call `get_recent_history(limit=3)` to see recently published topics.
+   * Call `get_recent_history(limit=10)` to see recently published topics.
 
 2. **Determine Strategy & Ideation Method:**
    * Pick a fresh, imaginative concept combining an unexpected character/subject with a whimsical action or cozy setting.
@@ -95,10 +96,20 @@ Output **ONLY** valid JSON:
 ```
 """
 
-def get_creative_director_instructions(creative_skill: str = None, collection_context: str = None, target_keyword: str = None) -> str:
+def get_creative_director_instructions(creative_skill: Any = None, collection_context: str = None, target_keyword: str = None, *args, **kwargs) -> str:
+    if not isinstance(creative_skill, str):
+        creative_skill = None
+    if not isinstance(collection_context, str):
+        collection_context = None
+    if not isinstance(target_keyword, str):
+        target_keyword = None
+
     ctx = get_agent_context()
-    if not creative_skill:
-        creative_skill = ctx.creative_skill if ctx else "Thick Line Art – Bold, clean outlines with no shading or fills. Pure black-and-white coloring book style suitable for children ages 3-10."
+    if not creative_skill and ctx and ctx.creative_skill:
+        creative_skill = ctx.creative_skill
+    if not creative_skill or not creative_skill.strip():
+        creative_skill = "Thick Line Art – Bold, clean outlines with no shading or fills. Pure black-and-white coloring book style suitable for children ages 3-10."
+
     if collection_context is None and ctx:
         collection_context = ctx.collection_context
     if target_keyword is None and ctx:
@@ -118,9 +129,9 @@ def get_creative_director_instructions(creative_skill: str = None, collection_co
             f"   - The `reasoning` field is published directly to customers on our website/app. **NEVER** mention keywords, SEO, search terms, or target phrases in `reasoning` (e.g. NEVER write 'Selected to target dinosaur colouring pages' or 'Targeting SEO keyword').\n"
             f"   - Write `reasoning` naturally as an engaging, child-friendly explanation of why this creative artwork is exciting and delightful today.\n"
             f"3. **SEO Metadata Alignment**:\n"
-            f"   - `title`: Naturally incorporate the intent of \"{target_keyword}\".\n"
+            f"   - `title`: Naturally incorporate the subject of \"{target_keyword}\" into a clean, catchy artwork title. **NEVER append raw target keywords or search phrase suffixes** (e.g. NEVER write 'Friendly Sandcastle - Dinosaur Colouring Pages' or 'Cute Otter - Coloring Page'). Create a clean name like 'Friendly Sandcastle Dinosaur'.\n"
             f"   - `description`: Write a rich visual description centered around \"{target_keyword}\".\n"
-            f"   - `visual_tags`: MUST include exact terms and relevant variations of \"{target_keyword}\" for high search relevance."
+            f"   - `visual_tags`: MUST consist of clean, individual 1-2 word tags suitable for UI display chips (e.g. [\"dinosaur\", \"sandcastle\", \"beach\", \"summer\"]). **NEVER put full multi-word search phrases or sentences** (e.g. NEVER include \"{target_keyword}\" or \"coloring page\" as an item in `visual_tags`)."
         )
 
     instructions = INSTRUCTIONS_TEMPLATE.format(

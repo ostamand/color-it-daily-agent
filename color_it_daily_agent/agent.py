@@ -9,6 +9,7 @@ from .creative_director.agent import creative_director
 from .stylist.agent import stylist
 from .generator.agent import generator
 from .critic.agent import critic
+from .lib.trace_plugin import PromptTracePlugin
 
 # --- Orchestration ---
 
@@ -35,7 +36,7 @@ async def main():
     now = datetime.now()
     current_date_str = now.strftime("%Y-%m-%d")
 
-    runner = InMemoryRunner(agent=publisher)
+    runner = InMemoryRunner(agent=publisher, plugins=[PromptTracePlugin()])
 
     print(f"Starting Publisher Agent for {current_date_str}...")
 

@@ -8,7 +8,7 @@ from ...lib.embeddings import generate_embedding
 from ...lib.database import get_db
 from ...app_configs import configs
 
-def get_recent_history(limit: int = 3) -> List[str]:
+def get_recent_history(limit: int = 10) -> List[str]:
     """
     Retrieves the titles and visual tags of the most recently published coloring pages from Firestore.
     Used to check what categories we have just done (e.g., 'Space' or 'Dinosaurs')

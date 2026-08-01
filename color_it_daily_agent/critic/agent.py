@@ -7,6 +7,7 @@ from google.adk.runners import InMemoryRunner
 
 from .instructions import get_critic_instructions
 from .tools.download import download_image
+from .tools.inspect import inspect_image_visually
 from .tools.publish import publish_to_firestore
 from ..app_configs import configs
 
@@ -14,7 +15,7 @@ critic = LlmAgent(
     name="Critic",
     instruction=get_critic_instructions,
     model=Gemini(model=configs.llm_model),
-    tools=[download_image, publish_to_firestore]
+    tools=[download_image, inspect_image_visually, publish_to_firestore]
 )
 
 
