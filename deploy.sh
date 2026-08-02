@@ -38,6 +38,7 @@ gcloud run deploy color-it-daily-agent \
 	--set-env-vars EMBEDDING_COLLECTION="${EMBEDDING_COLLECTION}" \
 	--set-env-vars COLORING_PAGE_COLLECTION="${COLORING_PAGE_COLLECTION}" \
 	--set-env-vars GCP_MEDIA_BUCKET="${GCP_MEDIA_BUCKET}" \
+	--set-env-vars API_BASE_URL="${API_BASE_URL}" \
 	--min-instances 0 \
 	--max-instances 2 \
 	--platform managed \

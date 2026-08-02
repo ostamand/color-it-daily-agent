@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 
 from color_it_daily_agent.app_configs import configs
-from color_it_daily_agent.context import get_agent_context
+from color_it_daily_agent.context import get_agent_context, DEFAULT_TARGET_AUDIENCE
 from color_it_daily_agent.critic.tools.download import download_image
 
 logger = logging.getLogger(__name__)
@@ -16,6 +16,7 @@ def inspect_image_visually(
     image_path: str,
     creative_skill: Optional[str] = None,
     concept_description: Optional[str] = None,
+    target_audience: Optional[str] = None,
 ) -> str:
     """
     Visually inspects a coloring page image using Gemini Multimodal Vision API.
@@ -24,14 +25,17 @@ def inspect_image_visually(
         image_path (str): The GCS path (gs://...) or local file path to the image.
         creative_skill (str, optional): Target artistic style description to check compliance against.
         concept_description (str, optional): The prompt/concept description to verify visual subject alignment.
+        target_audience (str, optional): Target audience tier ('toddler', 'kids_3_10', 'tweens_teens', 'young_adults', 'adults').
 
     Returns:
-        str: JSON string containing detailed visual analysis across Safety, Text, Borders, Quality, Style, Complexity, and Subject Alignment.
+        str: JSON string containing detailed visual analysis across Safety, Text, Borders, Quality, Style, Complexity, Prompt Alignment, and Anatomy.
     """
     if not isinstance(creative_skill, str):
         creative_skill = None
     if not isinstance(concept_description, str):
         concept_description = None
+    if not isinstance(target_audience, str):
+        target_audience = None
 
     logger.info(f"🧐 [VISUAL INSPECTION] Inspecting image: {image_path}")
 
@@ -41,10 +45,14 @@ def inspect_image_visually(
     with open(local_path, "rb") as f:
         image_bytes = f.read()
 
-    # 2. Resolve creative skill if not provided
+    # 2. Resolve context fallbacks
     ctx = get_agent_context()
     if not creative_skill and ctx:
         creative_skill = ctx.creative_skill
+    if not target_audience and ctx and ctx.target_audience:
+        target_audience = ctx.target_audience
+    if not target_audience:
+        target_audience = DEFAULT_TARGET_AUDIENCE
 
     if creative_skill and creative_skill.strip():
         style_prompt_section = (
@@ -70,6 +78,29 @@ def inspect_image_visually(
             "7. **Subject & Prompt Alignment:** No specific concept description provided for comparison."
         )
 
+    if target_audience == "toddler":
+        complexity_section = (
+            "6. **Complexity & Colorability Check (TARGET AUDIENCE: TODDLERS 1-3):**\n"
+            "   - Are the outlines extra-bold and shapes extra-large with massive open coloring areas suitable for early learners?\n"
+            "   - Is the page simple, clean, and completely free of tiny details or complex background noise?"
+        )
+    elif target_audience in ("tweens_teens", "young_adults"):
+        complexity_section = (
+            f"6. **Complexity & Colorability Check (TARGET AUDIENCE: {target_audience.upper()}):**\n"
+            "   - Does the illustration feature clean vector outlines with moderate scene detail, balanced framing, and engaging visual structure?"
+        )
+    elif target_audience == "adults":
+        complexity_section = (
+            "6. **Complexity & Colorability Check (TARGET AUDIENCE: ADULTS 25+):**\n"
+            "   - Does the illustration feature rich, detailed linework, intricate background elements, or satisfying detailed patterns ideal for adult coloring and mindfulness?"
+        )
+    else:
+        complexity_section = (
+            "6. **Complexity & Colorability Check (TARGET AUDIENCE: KIDS 3-10):**\n"
+            "   - Are the shapes and colorable areas large, clear, and distinct enough for children ages 3-10 to color comfortably?\n"
+            "   - Is the page free of micro-clutter, tiny uncolorable noise gaps, dense cross-hatching, or overcrowded background clutter?"
+        )
+
     # 3. Call Gemini Multimodal Vision API
     client = genai.Client(
         vertexai=True,
@@ -78,7 +109,7 @@ def inspect_image_visually(
     )
 
     vision_prompt = f"""
-You are a strict Multimodal Vision QA inspector for children's coloring pages.
+You are a strict Multimodal Vision QA inspector for children's and adult coloring pages.
 Analyze the attached image pixel-by-pixel and evaluate it against these criteria:
 
 1. **Borders & Frames (CRITICAL):**
@@ -88,8 +119,8 @@ Analyze the attached image pixel-by-pixel and evaluate it against these criteria
 2. **Text & Typography (CRITICAL):**
    - Are there ANY written words, letters, numbers, signs, titles, watermarks, logos, or signatures anywhere in the illustration?
 
-3. **Safety & Suitability:**
-   - Is the content 100% safe for children ages 3-10? (No scary elements, monsters, weapons, hate, or ambiguous themes).
+3. **Safety & Suitability (CRITICAL - ALL AGES):**
+   - Is the content 100% appropriate and safe for all audiences? (No scary elements, monsters, weapons, hate, suggestive content, or ambiguous themes).
 
 4. **Line Quality & Shading:**
    - Are lines clean, vector-like, and unbroken?
@@ -97,9 +128,7 @@ Analyze the attached image pixel-by-pixel and evaluate it against these criteria
 
 {style_prompt_section}
 
-6. **Complexity & Colorability Check (CRITICAL FOR KIDS):**
-   - Are the shapes and colorable areas large, clear, and distinct enough for children ages 3-10 to color comfortably?
-   - Is the page free of micro-clutter, tiny uncolorable noise gaps, dense cross-hatching, or overcrowded background clutter?
+{complexity_section}
 
 {alignment_prompt_section}
 

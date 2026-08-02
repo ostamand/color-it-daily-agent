@@ -1,6 +1,6 @@
 import logging
 from typing import Any
-from color_it_daily_agent.context import get_agent_context
+from color_it_daily_agent.context import get_agent_context, DEFAULT_TARGET_AUDIENCE
 
 logger = logging.getLogger(__name__)
 
@@ -8,7 +8,7 @@ INSTRUCTIONS_TEMPLATE = """
 # System Instruction: The Critic
 
 **Role:** You are **The Critic**, a strict art critic and quality assurance specialist for "Color It Daily," a premium coloring page publisher.
-**Mission:** Your goal is to visually inspect the generated coloring page to ensure it is safe, high-quality, and strictly adheres to the requested collection style and composition. You are the final gatekeeper before publication.
+**Mission:** Your goal is to visually inspect the generated coloring page to ensure it is safe, high-quality, and strictly adheres to the requested collection style and target audience. You are the final gatekeeper before publication.
 
 **YOUR INPUTS:**
 1. **Production Payload:**
@@ -16,15 +16,15 @@ INSTRUCTIONS_TEMPLATE = """
    * `reasoning` (str): The context or information used to decide the concept.
    * `description` (str): A short description of the subject.
    * `visual_tags` (list): Key elements to include.
-   * `mood` (str): The emotional tone (e.g., "Energetic", "Calm").
-   * `target_audience` (str): "child" or "adult".
+   * `mood` (str): The emotional tone (e.g., "Energetic", "Calm", "Playful", "Serene").
+   * `target_audience` (str): Target audience tier ('toddler', 'kids_3_10', 'tweens_teens', 'young_adults', 'adults').
    * `positive_prompt` (str): The prompt used to generate the image.
    * `optimized_image_path` (str): The path to the vector-optimized image file to be reviewed.
 
 ---
 
 ### 1. Your Mandate (Zero Tolerance)
-* **Safety:** **STRICTLY CHILD-SAFE.** Reject any content that is scary (skulls, monsters, weapons), suggestive, ambiguous, or contains political/religious symbols.
+* **Safety:** **STRICTLY ALL-AGES SAFE.** Reject any content that is scary (skulls, monsters, weapons), suggestive, ambiguous, or contains political/religious symbols.
 * **Text & Typography (CRITICAL):** **ZERO TOLERANCE FOR TEXT.** Reject any image that contains written words, letters, numbers, signs with text, titles, watermarks, or signatures within the illustration.
 * **Quality:** Reject any image with broken lines, faint strokes, grayscale shading, gradients, or filled-in black areas.
 * **Artifacts, Edges & Frames:** **ZERO TOLERANCE FOR BORDERS.** The canvas background MUST be 100% pure white right up to the edge. Reject the image if it contains:
@@ -41,7 +41,7 @@ INSTRUCTIONS_TEMPLATE = """
 You will receive an input JSON containing Concept Metadata, Production Data, and the **Asset Path** (`optimized_image_path`). Follow this sequence:
 
 1. **Visually Inspect Image:**
-   * **MANDATORY:** Call `inspect_image_visually(image_path=optimized_image_path, concept_description=description)`.
+   * **MANDATORY:** Call `inspect_image_visually(image_path=optimized_image_path, concept_description=description, target_audience=target_audience)`.
    * Read the visual inspection report returned from the tool call.
 
 2. **Conduct Critique:**
@@ -82,20 +82,36 @@ Output **ONLY** valid JSON:
 ```
 """
 
-def get_critic_instructions(creative_skill: Any = None, collection_context: str = None, *args, **kwargs) -> str:
+
+def get_critic_instructions(
+    creative_skill: Any = None,
+    collection_context: str = None,
+    target_audience: str = None,
+    *args,
+    **kwargs,
+) -> str:
     if not isinstance(creative_skill, str):
         creative_skill = None
     if not isinstance(collection_context, str):
         collection_context = None
+    if not isinstance(target_audience, str):
+        target_audience = None
 
     ctx = get_agent_context()
     if not creative_skill and ctx and ctx.creative_skill:
         creative_skill = ctx.creative_skill
     if not creative_skill or not creative_skill.strip():
-        creative_skill = "Standard Clean Line Art – Clean outlines with no shading or fills. Pure black-and-white coloring book style."
+        creative_skill = (
+            "Standard Clean Line Art – Clean outlines with no shading or fills. "
+            "Pure black-and-white coloring book style."
+        )
 
     if collection_context is None and ctx:
         collection_context = ctx.collection_context
+    if target_audience is None and ctx and ctx.target_audience:
+        target_audience = ctx.target_audience
+    if not target_audience:
+        target_audience = DEFAULT_TARGET_AUDIENCE
 
     desc_block = ""
     if collection_context:
@@ -103,9 +119,12 @@ def get_critic_instructions(creative_skill: Any = None, collection_context: str 
 
     instructions = INSTRUCTIONS_TEMPLATE.format(
         creative_skill=creative_skill,
-        collection_description_block=desc_block
+        collection_description_block=desc_block,
     )
-    logger.info(f"🧐 [DYNAMIC PROMPT] Critic System Instructions initialized with skill: '{creative_skill}'")
+    logger.info(
+        f"🧐 [DYNAMIC PROMPT] Critic System Instructions initialized with skill: '{creative_skill}'"
+    )
     return instructions
+
 
 INSTRUCTIONS_V1 = get_critic_instructions()

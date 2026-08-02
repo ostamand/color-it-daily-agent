@@ -11,19 +11,17 @@ Usage Examples:
 1. Run locally against default collection ('Wonder Daily'):
    python call-agent.py --endpoint http://localhost:8080
 
-2. Run against a specific collection with target keyword targeting:
-   python call-agent.py --endpoint http://localhost:8080 --collection "Wonder Daily" --keyword "dinosaur colouring pages"
+2. Run against a specific collection with target keyword and target audience:
+   python call-agent.py --endpoint http://localhost:8080 --collection "Wonder Daily" --audience "tweens_teens"
 
 3. Run in local-only no-persistence mode (saves assets locally to ./tmp/color_it_daily/):
    python call-agent.py --endpoint http://localhost:8080 --collection "Wonder Daily" --no-persist
 
-4. Run against deployed GCP Cloud Run service:
-   python call-agent.py --endpoint https://color-it-daily-agent-uc.a.run.app --collection "Wonder Daily"
-
 Arguments:
 ----------
   --endpoint        (Required) The base URL of the FastAPI agent server.
-  --collection      (Optional) The target collection name (e.g. 'Wonder Daily', 'Halloween').
+  --collection      (Optional) The target collection name.
+  --audience / -a   (Optional) Target audience tier ('toddler', 'kids_3_10', 'tweens_teens', 'young_adults', 'adults').
   --keyword / -k    (Optional) Target SEO keyword phrase (e.g. 'dinosaur colouring pages').
   --no-persist      (Optional) Disable Firestore & GCS writes; save all assets and document.json locally.
 ==============================================================================
@@ -53,7 +51,13 @@ def get_cloud_token():
         return None
 
 
-def main(endpoint: str, collection_name: str = None, target_keyword: str = None, no_persist: bool = False):
+def main(
+    endpoint: str,
+    collection_name: str = None,
+    target_audience: str = None,
+    target_keyword: str = None,
+    no_persist: bool = False,
+):
     token = get_cloud_token()
 
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
@@ -74,6 +78,7 @@ def main(endpoint: str, collection_name: str = None, target_keyword: str = None,
 
     # run the agent
     from datetime import datetime
+
     now = datetime.now()
     current_date_str = now.strftime("%Y-%m-%d")
 
@@ -82,6 +87,8 @@ def main(endpoint: str, collection_name: str = None, target_keyword: str = None,
     }
     if collection_name:
         user_request["collection_name"] = collection_name
+    if target_audience:
+        user_request["target_audience"] = target_audience
     if target_keyword:
         user_request["target_keyword"] = target_keyword
     if no_persist:
@@ -97,7 +104,7 @@ def main(endpoint: str, collection_name: str = None, target_keyword: str = None,
         },
         "streaming": False,
     }
-    
+
     print(f"Sending payload to {endpoint}/run: {json.dumps(user_request, indent=2)}")
     response = requests.post(f"{endpoint}/run", headers=headers, json=payload)
     response.raise_for_status()
@@ -108,12 +115,38 @@ def main(endpoint: str, collection_name: str = None, target_keyword: str = None,
 
 if __name__ == "__main__":
     load_dotenv()
-    
+
     parser = argparse.ArgumentParser(description="Trigger Color It Daily Agent runs")
-    parser.add_argument("--endpoint", type=str, required=True, help="Base URL of the agent service")
+    parser.add_argument(
+        "--endpoint", type=str, required=True, help="Base URL of the agent service"
+    )
     parser.add_argument("--collection", type=str, default=None, help="Target collection name")
-    parser.add_argument("--keyword", "-k", type=str, default=None, help="Target SEO keyword phrase (e.g. 'dinosaur colouring pages')")
-    parser.add_argument("--no-persist", action="store_true", help="Disable persistence and save assets locally")
+    parser.add_argument(
+        "--audience",
+        "-a",
+        type=str,
+        default=None,
+        choices=["toddler", "kids_3_10", "tweens_teens", "young_adults", "adults"],
+        help="Target audience tier ('toddler', 'kids_3_10', 'tweens_teens', 'young_adults', 'adults')",
+    )
+    parser.add_argument(
+        "--keyword",
+        "-k",
+        type=str,
+        default=None,
+        help="Target SEO keyword phrase (e.g. 'dinosaur colouring pages')",
+    )
+    parser.add_argument(
+        "--no-persist",
+        action="store_true",
+        help="Disable persistence and save assets locally",
+    )
     args = parser.parse_args()
-    
-    main(args.endpoint, collection_name=args.collection, target_keyword=args.keyword, no_persist=args.no_persist)
+
+    main(
+        args.endpoint,
+        collection_name=args.collection,
+        target_audience=args.audience,
+        target_keyword=args.keyword,
+        no_persist=args.no_persist,
+    )

@@ -1,12 +1,13 @@
-import time
+import os
+import json
 import logging
-from typing import Optional, Dict, Any, Tuple
-from datetime import datetime, timezone
-from color_it_daily_agent.lib.database import get_db
+import urllib.request
+import urllib.parse
+import urllib.error
+from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
-COLLECTIONS_FIRESTORE_COLLECTION = "coloritdaily_collections"
 DEFAULT_COLLECTION_NAME = "Wonder Daily"
 DEFAULT_CREATIVE_SKILL = (
     "Thick Line Art Style Guide – "
@@ -14,80 +15,108 @@ DEFAULT_CREATIVE_SKILL = (
     "Composition: Strong single focal point, balanced storybook framing with large closed shapes designed for children ages 3-10."
 )
 
-CACHE_TTL_SECONDS = 300  # 5 minutes in-memory cache
-_COLLECTION_CACHE: Dict[str, Tuple[float, Optional[Dict[str, Any]]]] = {}
 
-def get_collection(collection_name: str, use_cache: bool = True) -> Optional[Dict[str, Any]]:
+def get_collection(collection_name: str) -> Optional[Dict[str, Any]]:
     """
-    Look up a collection by name in the Firestore 'collections' collection.
-    Uses a 5-minute in-memory TTL cache to reduce Firestore reads.
-    Checks if the collection exists and is_active is True.
+    Look up a collection by name from the Public Collections API.
     Returns the collection dict, or None if invalid/not found.
     """
     if not collection_name:
         collection_name = DEFAULT_COLLECTION_NAME
 
-    cache_key = collection_name.lower().strip()
-    now = time.time()
-
-    if use_cache and cache_key in _COLLECTION_CACHE:
-        cached_time, cached_data = _COLLECTION_CACHE[cache_key]
-        if now - cached_time < CACHE_TTL_SECONDS:
-            return cached_data
-
-    result = _fetch_collection_from_db(collection_name)
-    _COLLECTION_CACHE[cache_key] = (now, result)
-    return result
+    return _fetch_collection_from_api(collection_name)
 
 
-def _fetch_collection_from_db(collection_name: str) -> Optional[Dict[str, Any]]:
-    db = get_db()
-    
-    # 1. Try looking up directly by document ID (slug)
-    doc_ref = db.collection(COLLECTIONS_FIRESTORE_COLLECTION).document(collection_name).get()
-    docs = []
-    if doc_ref.exists:
-        docs = [doc_ref]
-    else:
-        # 2. Query by field 'name'
-        query = db.collection(COLLECTIONS_FIRESTORE_COLLECTION).where("name", "==", collection_name).limit(1).stream()
-        docs = list(query)
-        if not docs:
-            # 3. Query by field 'slug'
-            slug_key = collection_name.lower().strip().replace(" ", "-")
-            query_slug = db.collection(COLLECTIONS_FIRESTORE_COLLECTION).where("slug", "==", slug_key).limit(1).stream()
-            docs = list(query_slug)
-            
-    if docs:
-        doc = docs[0]
-        data = doc.to_dict() if hasattr(doc, "to_dict") else doc.to_dict()
-        data["id"] = doc.id
-        
-        # Check active status (default to True if not present)
-        is_active = data.get("is_active", True)
-        if not is_active:
-            logger.warning(f"Collection '{collection_name}' exists but is marked inactive.")
-            return None
-            
-        if "creative_skill" not in data or not data["creative_skill"]:
-            data["creative_skill"] = DEFAULT_CREATIVE_SKILL
-            
-        return data
+def _fetch_collection_from_api(collection_name: str) -> Optional[Dict[str, Any]]:
+    """
+    Fetches collection metadata directly from the public collections API endpoint.
+    Appends /collections to the broad API_BASE_URL.
+    """
+    api_base_url = os.environ.get("API_BASE_URL")
+    collections_endpoint = f"{api_base_url.rstrip('/')}/collections"
 
-    # 3. Fallback for default collection "Wonder Daily" (or "wonder_daily") if DB not yet seeded
-    if collection_name.lower() in (DEFAULT_COLLECTION_NAME.lower(), "wonder_daily"):
-        logger.info(f"Using default fallback configuration for collection '{collection_name}'")
-        now_str = datetime.now(timezone.utc).isoformat()
-        return {
-            "id": "wonder-daily-default",
-            "name": DEFAULT_COLLECTION_NAME,
-            "description": "A fresh coloring page every day — playful, imaginative, and perfect for little hands.",
-            "image_url": None,
-            "is_active": True,
-            "creative_skill": DEFAULT_CREATIVE_SKILL,
-            "created_at": now_str,
-            "updated_at": now_str,
-        }
+    clean_target = collection_name.lower().strip()
+    encoded_name = urllib.parse.quote(clean_target)
 
-    logger.warning(f"Collection '{collection_name}' not found in Firestore.")
+    # 1. Try single collection endpoint: GET <API_BASE_URL>/collections/:collectionName
+    single_url = f"{collections_endpoint}/{encoded_name}"
+    req = urllib.request.Request(
+        single_url,
+        headers={"User-Agent": "ColorItDailyAgent/1.0", "Accept": "application/json"}
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=5) as response:
+            if response.status == 200:
+                body = response.read().decode("utf-8")
+                item = json.loads(body)
+
+                if isinstance(item, dict) and (item.get("id") or item.get("unique_name") or item.get("name") or item.get("slug")):
+                    logger.info(f"Loaded collection '{collection_name}' via Public API ({single_url}).")
+                    return _normalize_collection_payload(item, collection_name)
+    except urllib.error.HTTPError as e:
+        if e.code != 404:
+            logger.debug(f"HTTP error {e.code} when requesting '{single_url}': {e}")
+    except Exception as e:
+        logger.debug(f"Direct API call for '{single_url}' failed: {e}")
+
+    # 2. Try list endpoint: GET <API_BASE_URL>/collections
+    req_list = urllib.request.Request(
+        collections_endpoint,
+        headers={"User-Agent": "ColorItDailyAgent/1.0", "Accept": "application/json"}
+    )
+    try:
+        with urllib.request.urlopen(req_list, timeout=5) as response:
+            if response.status == 200:
+                body = response.read().decode("utf-8")
+                payload = json.loads(body)
+
+                collections_list = []
+                if isinstance(payload, list):
+                    collections_list = payload
+                elif isinstance(payload, dict):
+                    if "collections" in payload and isinstance(payload["collections"], list):
+                        collections_list = payload["collections"]
+                    elif "data" in payload and isinstance(payload["data"], list):
+                        collections_list = payload["data"]
+
+                target_slug = clean_target.replace(" ", "-")
+                for item in collections_list:
+                    c_name = str(item.get("display_name") or item.get("name") or "").lower().strip()
+                    c_slug = str(item.get("unique_name") or item.get("slug") or "").lower().strip()
+                    c_id = str(item.get("id") or "").lower().strip()
+
+                    if clean_target in (c_name, c_slug, c_id) or target_slug == c_slug:
+                        logger.info(f"Loaded collection '{collection_name}' via Public API list ({collections_endpoint}).")
+                        return _normalize_collection_payload(item, collection_name)
+    except Exception as e:
+        logger.debug(f"API list lookup at '{collections_endpoint}' failed: {e}")
+
+    logger.warning(f"Collection '{collection_name}' not found via Public API ({collections_endpoint}).")
     return None
+
+
+def _normalize_collection_payload(item: Dict[str, Any], requested_name: str) -> Optional[Dict[str, Any]]:
+    """Normalizes collection dictionary fields returned by the API."""
+    is_active = item.get("is_active", True)
+    if not is_active:
+        logger.warning(f"Collection '{requested_name}' is marked inactive.")
+        return None
+
+    unique_name = item.get("unique_name") or item.get("slug") or item.get("id") or requested_name
+    display_name = item.get("display_name") or item.get("name") or requested_name
+    description = item.get("description") or item.get("sub_heading") or item.get("heading") or ""
+
+    return {
+        "id": str(item.get("id") or unique_name),
+        "name": display_name,
+        "slug": unique_name,
+        "unique_name": unique_name,
+        "heading": item.get("heading", ""),
+        "description": description,
+        "context": item.get("context"),
+        "image_url": item.get("image_url") or item.get("background_url"),
+        "is_active": True,
+        "creative_skill": item.get("creative_skill") or DEFAULT_CREATIVE_SKILL,
+        "target_audience": item.get("target_audience"),
+    }
