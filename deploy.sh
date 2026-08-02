@@ -17,6 +17,7 @@ echo "🚀 Starting deployment for Color It Daily Agent..."
 echo "Project: ${GOOGLE_CLOUD_PROJECT}"
 echo "Firestore Project: ${FIRESTORE_PROJECT_ID}"
 echo "Image Tag: ${AGENT_IMAGE_TAG}"
+echo "Agent Version (Commit SHA): $(git rev-parse HEAD)"
 
 echo "1. Building Docker image..."
 docker build -t "${AGENT_IMAGE_TAG}" -f dockerfile.agent .
@@ -39,6 +40,7 @@ gcloud run deploy color-it-daily-agent \
 	--set-env-vars COLORING_PAGE_COLLECTION="${COLORING_PAGE_COLLECTION}" \
 	--set-env-vars GCP_MEDIA_BUCKET="${GCP_MEDIA_BUCKET}" \
 	--set-env-vars API_BASE_URL="${API_BASE_URL}" \
+	--set-env-vars AGENT_VERSION="$(git rev-parse HEAD)" \
 	--min-instances 0 \
 	--max-instances 2 \
 	--platform managed \

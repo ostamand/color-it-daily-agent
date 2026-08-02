@@ -12,6 +12,8 @@ from ...lib.persistence import update_document, get_local_output_dir
 from ...context import get_agent_context
 from ...app_configs import configs
 
+from ...lib.version import get_agent_version
+
 logger = logging.getLogger(__name__)
 
 def publish_to_firestore(
@@ -25,7 +27,6 @@ def publish_to_firestore(
     optimized_image_path: str,
     status: str,
     feedback: str,
-    negative_prompt: str = "",
     tool_context: Optional[ToolContext] = None
 ) -> str:
     """
@@ -33,15 +34,10 @@ def publish_to_firestore(
     """
     ctx = get_agent_context()
     
-    if ctx:
-        doc_id = ctx.document_id
-        collection_name = ctx.collection_name
-        no_persist = ctx.no_persist
-    else:
-        filename = os.path.basename(optimized_image_path)
-        doc_id = os.path.splitext(filename)[0]
-        collection_name = "Wonder Daily"
-        no_persist = False
+    doc_id = ctx.document_id
+    collection_name = ctx.collection_name
+    no_persist = ctx.no_persist
+    agent_version = ctx.agent_version
 
     published_date = datetime.now(timezone.utc)
 
@@ -54,13 +50,15 @@ def publish_to_firestore(
         "mood": mood,
         "target_audience": target_audience,
         "positive_prompt": positive_prompt,
-        "negative_prompt": negative_prompt,
         "optimized_image_path": optimized_image_path,
         "status": status,
         "feedback": feedback,
         "collection_name": collection_name,
         "target_keyword": ctx.target_keyword if ctx else None,
-        "published_date": published_date.isoformat() if no_persist else published_date,
+        "agent_version": agent_version,
+        "model_name": os.environ.get("MEDIA_MODEL"),
+        "prompt_model_name": os.environ.get("LLM_MODEL"),
+        "published_date": published_date.isoformat()
     }
 
     if no_persist:

@@ -14,13 +14,12 @@ from color_it_daily_agent.lib.persistence import get_local_output_dir
 
 logger = logging.getLogger(__name__)
 
-def generate_image(positive_prompt: str, negative_prompt: Optional[str] = None) -> str:
+def generate_image(positive_prompt: str) -> str:
     """
     Generates an image using the configured media model and uploads it to GCS (or saves locally if no_persist).
     
     Args:
         positive_prompt (str): The detailed description of what to generate.
-        negative_prompt (str, optional): Deprecated / unused.
 
     Returns:
         str: The GCS path (or local file path if no_persist) of the raw generated image.
@@ -114,11 +113,10 @@ def generate_image(positive_prompt: str, negative_prompt: Optional[str] = None) 
 if __name__ == "__main__":
     # Test the tool
     test_positive = "A pristine, black-and-white coloring page designed for children. A happy penguin is gliding gracefully across the surface of a smooth, frozen pond. The penguin is wearing a simple striped scarf and small ice skates. The background is a peaceful winter scene featuring a few rounded, snow-covered pine trees and a small, gentle snowy hill. The line work is fluid, friendly, and organic, using thick, uniform black lines on a pure white background. The composition is uncluttered with large, closed shapes and absolutely no shading, textures, or grayscale fills."
-    test_negative = "sharp ice cracked ice, thin lines, complex textures, shading, grayscale, gradients, photographic realism, messy sketches, small intricate details, dark backgrounds, cross-hatching"
     
     try:
         print(f"Generating image for: {test_positive}")
-        result_path = generate_image(test_positive, test_negative)
+        result_path = generate_image(test_positive)
         print(f"✅ Generated image saved to: {result_path}")
     except Exception as e:
         print(f"❌ Test failed: {e}")

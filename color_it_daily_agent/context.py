@@ -2,6 +2,8 @@ import contextvars
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
 
+from color_it_daily_agent.lib.version import get_agent_version
+
 VALID_TARGET_AUDIENCES = [
     "toddler",
     "kids_3_10",
@@ -29,6 +31,7 @@ class AgentContext:
     )
     collection_data: Dict[str, Any] = field(default_factory=dict)
     local_output_dir: str = ""
+    agent_version: str = field(default_factory=get_agent_version)
 
 
 _context_var: contextvars.ContextVar[Optional[AgentContext]] = (

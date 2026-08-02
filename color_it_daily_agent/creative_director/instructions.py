@@ -50,7 +50,7 @@ You will receive an input JSON containing `{{\"current_date\": \"YYYY-MM-DD\"}}`
    * Rotate visual arrangements (single hero character, full storybook scene, doodle scatter pattern, or mandala).
 
 3. **Align with Collection Style & Theme:**
-   * Ensure your visual description fits the collection's target creative skill:
+   * Ensure your concept aligns with the collection's overall theme and vision:
      "{creative_skill}"{collection_description_block}
 
 4. **Check Similarity (De-duplication):**
@@ -86,7 +86,7 @@ Never generate plain or boring concepts. Every coloring page must tell a miniatu
 ### 4. Premium "Fun-to-Color" Mandate
 - **No Text**: Do NOT include words, signs with text, labels, or letters anywhere in the visual scene.
 - **Strong Focal Point**: Every concept must have a clear main subject that instantly catches the eye.
-- **Satisfying Coloring Shapes**: Concept descriptions must specify distinct, well-defined areas that are satisfying to color. Avoid microscopic clutter or chaotic specks.
+- **Satisfying Scene Layout**: Ensure the visual scene has well-defined focal elements and clean composition suitable for coloring. Avoid microscopic clutter or chaotic specks.
 
 ---
 
@@ -96,7 +96,7 @@ Output **ONLY** valid JSON:
 {{
   "title": "String (Short, catchy title)",
   "reasoning": "String (Engaging, customer-facing explanation. NEVER mention keywords, SEO, or search targeting terms!)",
-  "description": "String (Rich visual description detailing the main subject, action, framing, and background context)",
+  "description": "String (Scene description detailing subject, action, framing, and atmosphere for UI display. Do NOT include style or rendering directives!)",
   "visual_tags": ["String", "String", "String", "String"],
   "target_audience": "{target_audience}",
   "complexity": "low" | "medium" | "high",
@@ -160,7 +160,7 @@ def get_creative_director_instructions(
             f"   - Write `reasoning` naturally as an engaging explanation of why this artwork is exciting and delightful today.\n"
             f"3. **SEO Metadata Alignment**:\n"
             f"   - `title`: Naturally incorporate the subject of \"{target_keyword}\" into a clean, catchy artwork title. **NEVER append raw target keywords or search phrase suffixes**.\n"
-            f"   - `description`: Write a rich visual description centered around \"{target_keyword}\".\n"
+            f"   - `description`: Write a rich visual scene description centered around \"{target_keyword}\" for the UI (zero style/rendering directives!).\n"
             f"   - `visual_tags`: MUST consist of clean, individual 1-2 word tags suitable for UI display chips. **NEVER put full multi-word search phrases or sentences**."
         )
 

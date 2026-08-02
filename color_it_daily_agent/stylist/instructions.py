@@ -38,8 +38,8 @@ Transform a concept into a detailed, descriptive text prompt that directs the im
 **YOUR INPUTS:**
 1. **Concept Payload:**
    * `title` (str): The name of the artwork.
-   * `reasoning` (str): The context or information used to decide the concept.
-   * `description` (str): A short description of the subject.
+   * `reasoning` (str): Customer-facing explanation of the concept.
+   * `description` (str): Customer-facing scene description (details subject, character action, and setting without art style directives).
    * `visual_tags` (list): Key elements to include.
    * `mood` (str): The emotional tone (e.g., "Energetic", "Calm", "Playful", "Serene").
    * `target_audience` (str): Target audience tier ('toddler', 'kids_3_10', 'tweens_teens', 'young_adults', 'adults').
@@ -50,8 +50,8 @@ Transform a concept into a detailed, descriptive text prompt that directs the im
 
 **YOUR OUTPUT:**
 A single JSON object containing:
-* `title`, `reasoning`, `description`, `visual_tags`, `mood`, `target_audience` (Echoed from input).
-* `positive_prompt`: A detailed text prompt describing the subject, composition, line style, and framing.
+* `title`, `reasoning`, `description`, `visual_tags`, `mood`, `target_audience` (Echoed exactly from input).
+* `positive_prompt`: Complete text prompt combining the scene elements from `description` with line art style directives, outline thickness, closed shapes, and rendering rules.
 
 ---
 
@@ -59,8 +59,8 @@ A single JSON object containing:
 Regardless of the specific collection or creative skill, EVERY image must be a **professional, premium-quality coloring page**:
 - **STRICT NO TEXT RULE**: The artwork MUST NOT contain any written text, words, letters, numbers, signs with text, titles, signatures, or typography. All elements must be pure visual line art.
 - **Optimized for Coloring**: Outlines must form clean, closed shapes with distinct, satisfying-to-color regions. Never produce tiny uncolorable noise, muddy gradients, or filled grayscale areas.
+- **Synthesize Prompt Details**: Expand the customer-facing `description` into a complete image generation prompt (`positive_prompt`) by adding the target audience linework rules, bold outlines, line weight, composition bounds, and zero-shading directives.
 - **Premium & Professional**: The illustration should look like a published, high-end coloring book page.
-- **Detailed Text Prompt**: Write a rich, full sentence text prompt detailing the subject, action, framing, and artistic details naturally.
 
 ---
 

@@ -36,21 +36,6 @@ async def main():
         "mood": "Calm",
         "target_audience": "child",
         "positive_prompt": "A pristine, black-and-white coloring page designed for children. Illustrate a soft, whimsical storybook scene of a cheerful squirrel wearing a thick, knitted sweater sitting on a small wooden stool. The squirrel is happily holding a large, chunky jigsaw puzzle piece above a simple puzzle on a table. Next to him sits a steaming mug of cocoa. In the background, a simple window frame reveals a peaceful snowy day with a few large snowflakes. Use fluid, organic line work that feels friendly and inviting, keeping the background sparse and uncluttered. The image uses thick, uniform black lines on a pure white background with absolutely no shading, texture, or grayscale fill.",
-        "negative_prompt": [
-            "shading",
-            "grayscale",
-            "texture",
-            "tiny puzzle pieces",
-            "sharp edges",
-            "clutter",
-            "complex patterns",
-            "realistic fur",
-            "photorealistic",
-            "dark shadows",
-            "thin lines",
-            "messy lines",
-            "hatching"
-        ],
         "raw_image_path": "gs://color-it-daily-agent-assets/raw/ccdd3d36-dbc6-40a6-8bf1-d8259e530b0d.png",
         "optimized_image_path": "gs://color-it-daily-agent-assets/optimized/ccdd3d36-dbc6-40a6-8bf1-d8259e530b0d.png"
     }
