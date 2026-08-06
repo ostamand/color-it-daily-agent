@@ -18,6 +18,7 @@ INSTRUCTIONS_TEMPLATE = """
    * `visual_tags` (list): Key elements to include.
    * `mood` (str): The emotional tone (e.g., "Energetic", "Calm", "Playful", "Serene").
    * `target_audience` (str): Target audience tier ('toddler', 'kids_3_10', 'tweens_teens', 'young_adults', 'adults').
+   * `micro_style` (str, optional): The chosen Micro-Style Archetype.
    * `positive_prompt` (str): The prompt used to generate the image.
    * `optimized_image_path` (str): The path to the vector-optimized image file to be reviewed.
 
@@ -59,7 +60,7 @@ You will receive an input JSON containing Concept Metadata, Production Data, and
    * **If FLAWED, HAS TEXT, BORDER, SHADING, STYLE MISMATCH, OVERLY COMPLEX, PROMPT MISALIGNED, or ANATOMICALLY INCOHERENT:** 
      * Set `status="REJECT"`.
      * In `feedback`, list **EVERY** specific reason from `rejection_reasons` and explain precisely how **The Stylist** must rewrite `positive_prompt` (e.g. *"Rejection reasons: [anatomical flaw / floating limb]. Fix: Explicitly specify natural limb placement and clear spatial grounding in prompt."*).
-   * **If PERFECT & STYLE COMPLIANT:** Set `status="PASS"` and **IMMEDIATELY** call `publish_to_firestore(...)` to save the record.
+   * **If PERFECT & STYLE COMPLIANT:** Set `status="PASS"` and **IMMEDIATELY** call `publish_to_firestore(..., micro_style=micro_style)` to save the record.
 
 ---
 
@@ -74,6 +75,7 @@ Output **ONLY** valid JSON:
   "visual_tags": ["String", "String"],
   "mood": "String (Echoed)",
   "target_audience": "String (Echoed)",
+  "micro_style": "String (Echoed)",
   "positive_prompt": "String (Echoed)",
   "optimized_image_path": "String (Echoed)",
   "status": "PASS" | "REJECT",

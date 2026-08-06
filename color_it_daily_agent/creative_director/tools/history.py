@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 from google.cloud.firestore_v1.vector import Vector
@@ -7,6 +8,42 @@ from google.cloud import firestore
 from ...lib.embeddings import generate_embedding
 from ...lib.database import get_db
 from ...app_configs import configs
+
+logger = logging.getLogger(__name__)
+
+
+def get_recent_styles(limit: int = 5) -> List[str]:
+    """
+    Retrieves the micro_style attributes of the most recently published coloring pages from Firestore.
+    Used by Stylist to encourage archetype rotation when multiple styles could fit a concept.
+
+    Args:
+        limit (int): How many past pages to inspect. Defaults to 5.
+
+    Returns:
+        List[str]: A list of recent style archetype names.
+    """
+    try:
+        db = get_db()
+        docs = (
+            db.collection(configs.coloring_page_collection)
+            .order_by("published_date", direction=firestore.Query.DESCENDING)
+            .limit(limit)
+            .stream()
+        )
+
+        styles = []
+        for doc in docs:
+            data = doc.to_dict()
+            style = data.get("micro_style")
+            if style and isinstance(style, str) and style.strip():
+                styles.append(style.strip())
+
+        return styles
+    except Exception as e:
+        logger.warning(f"Could not fetch recent micro_style history: {e}")
+        return []
+
 
 def get_recent_history(limit: int = 10) -> List[str]:
     """

@@ -27,6 +27,7 @@ def publish_to_firestore(
     optimized_image_path: str,
     status: str,
     feedback: str,
+    micro_style: Optional[str] = None,
     tool_context: Optional[ToolContext] = None
 ) -> str:
     """
@@ -49,6 +50,7 @@ def publish_to_firestore(
         "visual_tags": visual_tags,
         "mood": mood,
         "target_audience": target_audience,
+        "micro_style": micro_style,
         "positive_prompt": positive_prompt,
         "optimized_image_path": optimized_image_path,
         "status": status,
