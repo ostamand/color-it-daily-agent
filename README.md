@@ -60,7 +60,7 @@ When creating a new collection record, populate the following fields so both you
 | `heading` | `string` | **Frontend UI**: Catchy marketing headline displayed on the website/app. |
 | `description` | `string` | **Frontend UI**: Customer-facing summary describing the collection for users. |
 | `context` | `string` | **Agent Vision**: Unifying storybook environment, mood, and world rules. Grounds all generated pages without prescribing rigid scene elements or specific examples. |
-| `creative_skill` | `string` | **Pure Style & Composition Guide**: Defines line weight, vector closed shapes, framing, region size, and shading rules. (Exclusive to artistic style; no topic-specific subjects). |
+| `creative_skill` | `string` | **Pure Style & Artistic Flavor**: Defines the unique visual personality, line feel, and artistic vibe of the collection. (Baseline rules like no shading and closed paths are handled automatically by default). |
 
 ---
 
@@ -70,24 +70,31 @@ Copy and paste the template below into an LLM whenever you want to generate a ne
 
 ```text
 Act as a Creative Publisher for "Color It Daily," a premium children's coloring page app.
+    
+    Please generate a JSON object with the following fields:
+    
+    1. "display_name": A catchy display name for the collection.
+    2. "unique_name": A URL-friendly slug version of the display name (all lowercase, hyphenated).
+    3. "target_audience": The target audience tier for this collection. Choose exactly one from: ["toddler",
+  "kids_3_10", "tweens_teens", "young_adults", "adults"].
+    4. "heading": A high-impact marketing headline for our frontend UI.
+    5. "description": A short, engaging 1-2 sentence summary for users browsing our frontend app.
+    6. "context": A unifying 2-3 sentence description defining the overall world, mood, character dynamics,
+  and storybook atmosphere of the collection. IMPORTANT: Do NOT list specific object, animal, or scene
+  examples in this context, so that the daily generation agent remains free to explore maximum variety and
+  diverse scene concepts within this world.
+    7. "creative_skill": A description defining the UNIQUE VISUAL PERSONALITY and artistic flavor of the
+  collection (e.g., bold rounded storybook, elegant organic line art, retro 1930s cartoon, whimsical
+  fantasy):
+       - Focus on line personality, artistic vibe, and composition approach.
+       - Do NOT repeat baseline technical rules like "no shading", "closed paths", or "vector line art" (the
+  system enforces these by default).
+       - Do NOT include specific topic subjects here; restrict strictly to visual style.
+    8. "keywords": An array of up to 6 relevant, high-search-volume SEO target keywords for this collection.
 
-Please generate a JSON object with the following fields:
+    Output ONLY valid JSON.
 
-1. "display_name": A catchy display name for the collection.
-2. "unique_name": A URL-friendly slug version of the display name (all lowercase, hyphenated).
-3. "target_audience": The target audience tier for this collection. Choose exactly one from: ["toddler", "kids_3_10", "tweens_teens", "young_adults", "adults"].
-4. "heading": A high-impact marketing headline for our frontend UI.
-5. "description": A short, engaging 1-2 sentence summary for users browsing our frontend app.
-6. "context": A unifying 2-3 sentence description defining the overall world, mood, character dynamics, and storybook atmosphere of the collection. IMPORTANT: Do NOT list specific object, animal, or scene examples in this context, so that the daily generation agent remains free to explore maximum variety and diverse scene concepts within this world.
-7. "creative_skill": A comprehensive artistic style and technical composition guide focusing EXCLUSIVELY on visual execution rules:
-   - Line Technique & Weight (line thickness, clean vector closed paths, zero shading or gradient fills)
-   - Composition & Framing (focal point placement, background complexity, coloring region size appropriate for the target audience)
-   - Do NOT include topic-specific subjects or thematic objects here; restrict this strictly to visual and artistic style guidelines.
-8. "keywords": An array of up to 6 relevant, high-search-volume SEO target keywords for this collection.
-
-Output ONLY valid JSON.
-
-I want to create a brand new collection centered around the topic: "[INSERT YOUR TOPIC HERE]".
+    I want to create a brand new collection centered around the topic: "[INSERT YOUR TOPIC HERE]"
 ```
 
 ---

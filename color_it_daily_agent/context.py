@@ -25,12 +25,13 @@ class AgentContext:
     target_audience: str = DEFAULT_TARGET_AUDIENCE
     collection_context: Optional[str] = None
     collection_description: Optional[str] = None
-    creative_skill: str = (
-        "Thick Line Art – Bold, clean outlines with no shading or fills. "
-        "Pure black-and-white coloring book style."
-    )
     collection_data: Dict[str, Any] = field(default_factory=dict)
     local_output_dir: str = ""
+    micro_style: Optional[str] = None
+    micro_style_name: Optional[str] = None
+    micro_style_unique_name: Optional[str] = None
+    micro_style_description: Optional[str] = None
+    micro_style_data: Optional[Dict[str, Any]] = None
     agent_version: str = field(default_factory=get_agent_version)
 
 

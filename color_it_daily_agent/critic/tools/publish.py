@@ -28,6 +28,7 @@ def publish_to_firestore(
     status: str,
     feedback: str,
     micro_style: Optional[str] = None,
+    micro_style_description: Optional[str] = None,
     tool_context: Optional[ToolContext] = None
 ) -> str:
     """
@@ -42,6 +43,8 @@ def publish_to_firestore(
 
     published_date = datetime.now(timezone.utc)
 
+    resolved_micro_style_desc = micro_style_description or (ctx.micro_style_description if ctx else None)
+
     metadata_payload = {
         "published": False,
         "title": title,
@@ -50,7 +53,8 @@ def publish_to_firestore(
         "visual_tags": visual_tags,
         "mood": mood,
         "target_audience": target_audience,
-        "micro_style": micro_style,
+        "micro_style": micro_style or (ctx.micro_style_name if ctx else None),
+        "micro_style_description": resolved_micro_style_desc,
         "positive_prompt": positive_prompt,
         "optimized_image_path": optimized_image_path,
         "status": status,

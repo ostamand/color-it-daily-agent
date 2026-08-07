@@ -13,6 +13,7 @@ from color_it_daily_agent.context import (
 )
 from color_it_daily_agent.lib.firestore_config import load_firestore_input_overrides
 from color_it_daily_agent.lib.collections import get_collection, DEFAULT_COLLECTION_NAME
+from color_it_daily_agent.lib.micro_styles import resolve_micro_style
 from color_it_daily_agent.lib.persistence import pre_create_document, get_local_output_dir
 
 logger = logging.getLogger(__name__)
@@ -21,19 +22,32 @@ logger = logging.getLogger(__name__)
 def prepare_agent_execution(input_payload: Dict[str, Any]) -> Tuple[AgentContext, Dict[str, Any]]:
     """
     Processes the raw API input payload:
-    1. Overrides non-null fields from Firestore config document ('coloritdaily_config/agent_input').
-    2. Validates collection existence and activity.
-    3. Normalizes target_audience (defaults to 'kids_3_10').
-    4. Pre-creates a Firestore (or local if no_persist) document with status='running'.
-    5. Sets up and returns the AgentContext.
+    1. Normalizes payload field aliases (collection -> collection_name, keyword -> target_keyword, selected_style -> micro_style).
+    2. Overrides non-null fields from Firestore config document ('coloritdaily_config/agent_input').
+    3. Validates collection existence and activity.
+    4. Resolves micro_style dynamically via API endpoints (fails fast on error).
+    5. Normalizes target_audience (defaults to 'kids_3_10').
+    6. Pre-creates a Firestore (or local if no_persist) document with status='running'.
+    7. Sets up and returns the AgentContext.
     """
-    # 1. Load Firestore Overrides & Merge
-    firestore_overrides = load_firestore_input_overrides()
     merged_payload = dict(input_payload)
 
+    # Alias normalization on input payload
+    if "collection" in merged_payload and "collection_name" not in merged_payload:
+        merged_payload["collection_name"] = merged_payload.get("collection")
+    if "keyword" in merged_payload and "target_keyword" not in merged_payload:
+        merged_payload["target_keyword"] = merged_payload.get("keyword")
+    if "selected_style" in merged_payload and "micro_style" not in merged_payload:
+        merged_payload["micro_style"] = merged_payload.get("selected_style")
+
+    # 1. Load Firestore Overrides & Merge
+    firestore_overrides = load_firestore_input_overrides()
     for k, v in firestore_overrides.items():
         if v is not None:
-            merged_payload[k] = v
+            if k == "selected_style" and "micro_style" not in firestore_overrides:
+                merged_payload["micro_style"] = v
+            else:
+                merged_payload[k] = v
             logger.info(f"Overrode input field '{k}' with Firestore value: {v}")
 
     # Extract & set defaults
@@ -59,9 +73,21 @@ def prepare_agent_execution(input_payload: Dict[str, Any]) -> Tuple[AgentContext
         logger.error(err_msg)
         raise HTTPException(status_code=400, detail=err_msg)
 
-    creative_skill = collection_data.get("creative_skill", "Thick Line Art")
     collection_context = collection_data.get("context")
     collection_description = collection_data.get("description")
+
+    # 3. Resolve Micro-Style (API random selection if null/DEFAULT, or identifier lookup)
+    raw_micro_style = merged_payload.get("micro_style") or merged_payload.get("selected_style")
+    resolved_micro_style = resolve_micro_style(raw_micro_style, collection_name=collection_name)
+
+    micro_style_name = resolved_micro_style.get("name")
+    micro_style_unique_name = resolved_micro_style.get("unique_name")
+    micro_style_description = resolved_micro_style.get("description")
+    
+    # Store style name & description in payload for consistent JSON logging and downstream step echoing
+    merged_payload["micro_style"] = micro_style_name
+    merged_payload["micro_style_description"] = micro_style_description
+    logger.info(f"🎨 Micro-Style resolved: '{micro_style_name}' ({micro_style_unique_name})")
 
     # Extract & normalize target_audience (API Payload / Override -> Collection Doc Default -> Fallback)
     raw_audience = merged_payload.get("target_audience") or collection_data.get("target_audience")
@@ -73,7 +99,7 @@ def prepare_agent_execution(input_payload: Dict[str, Any]) -> Tuple[AgentContext
     merged_payload["target_audience"] = target_audience
     logger.info(f"🎯 Target Audience set: '{target_audience}'")
 
-    # 3. Generate Document ID & Pre-Create Document
+    # 4. Generate Document ID & Pre-Create Document
     document_id = str(uuid.uuid4())
     pre_create_document(
         document_id=document_id,
@@ -83,7 +109,7 @@ def prepare_agent_execution(input_payload: Dict[str, Any]) -> Tuple[AgentContext
         input_payload=merged_payload,
     )
 
-    # 4. Create & Set Agent Context
+    # 5. Create & Set Agent Context
     ctx = AgentContext(
         document_id=document_id,
         current_date=current_date,
@@ -93,8 +119,12 @@ def prepare_agent_execution(input_payload: Dict[str, Any]) -> Tuple[AgentContext
         target_audience=target_audience,
         collection_context=collection_context,
         collection_description=collection_description,
-        creative_skill=creative_skill,
         collection_data=collection_data,
+        micro_style=micro_style_name,
+        micro_style_name=micro_style_name,
+        micro_style_unique_name=micro_style_unique_name,
+        micro_style_description=micro_style_description,
+        micro_style_data=resolved_micro_style,
         local_output_dir=get_local_output_dir(document_id),
     )
     set_agent_context(ctx)

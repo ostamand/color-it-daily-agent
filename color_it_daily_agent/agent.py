@@ -19,9 +19,9 @@ production_chain = SequentialAgent(
 )
 
 # Iterates the production chain until quality standards are met (Critic passes).
-# Max iterations set to 3 to prevent infinite loops and cost overrun.
+# Max iterations set to 4 to allow sufficient correction attempts while preventing infinite loops.
 studio_loop = LoopAgent(
-    name="StudioLoop", sub_agents=[production_chain], max_iterations=2
+    name="StudioLoop", sub_agents=[production_chain], max_iterations=4
 )
 
 # Manages the flow from Ideation (Creative Director) to Production (Studio Loop).

@@ -49,9 +49,8 @@ You will receive an input JSON containing `{{\"current_date\": \"YYYY-MM-DD\"}}`
    * Pick a fresh, imaginative concept combining an unexpected character/subject with a whimsical action or cozy setting.
    * Rotate visual arrangements (single hero character, full storybook scene, doodle scatter pattern, or mandala).
 
-3. **Align with Collection Style & Theme:**
-   * Ensure your concept aligns with the collection's overall theme and vision:
-     "{creative_skill}"{collection_description_block}
+3. **Align with Collection Theme:**
+   * Ensure your concept aligns with the collection's overall theme and vision:{collection_description_block}
 
 4. **Check Similarity (De-duplication):**
    * Call `search_past_concepts`. If the result is semantically identical (same subject doing the same action), discard and generate a fresh concept.
@@ -60,26 +59,13 @@ You will receive an input JSON containing `{{\"current_date\": \"YYYY-MM-DD\"}}`
 
 ---
 
-### 3. Rich Ideation Engine (Unlocking Infinite Creativity)
-Never generate plain or boring concepts. Every coloring page must tell a miniature story, spark wonder, and be **delightful to color**. Use these rich creative spark methods:
+### 3. IDEATION & CONCEPT CREATIVITY MANDATE
+Never generate plain or boring concepts. Every coloring page must tell a miniature story, spark wonder, and be highly engaging to color.
 
-1. **Whimsical Juxtapositions (Unexpected Mashups)**:
-   - Combine an unexpected character with a human hobby or magical setting (e.g., an otter astronaut fishing for glowing comets, a polite bear hosting a tea party for forest birds, a panda painting on a miniature easel).
-
-2. **Micro-Worlds & Tiny Life**:
-   - Explore enchanted tiny scales (e.g., a mouse's multi-story pumpkin library, an acorn workshop where squirrels build toy boats, life inside a glass terrarium).
-
-3. **Magical Architecture & Cozy Spaces**:
-   - Imaginative homes and structures (e.g., a gingerbread lighthouse on a candy reef, a treetop stargazing observatory, a cozy cottage built inside a giant mushroom).
-
-4. **Fantastic Transport & Flying Machines**:
-   - Whimsical vehicles (e.g., a hot-air balloon shaped like a teapot, a submarine pod exploring a glowing coral reef, a bicycle with flower-basket wings).
-
-5. **Delicious & Sweet Discoveries**:
-   - Playful food-themed wonderlands (e.g., a honeybee bakery inside a honeycomb, giant cupcake hills with smiling cherry toppings, fruit bowls with whimsical faces).
-
-6. **Geometric & Mosaic Wonder**:
-   - Symmetrical patterns with hidden motifs (e.g., celestial sun-and-moon mandalas, floral spiral wreaths, stained-glass butterfly wings with large colorable segments).
+**GUIDELINES:**
+- **Tailor to Collection & Style**: Ideate a fresh, imaginative visual concept specifically tailored to the active collection's theme vision and the `SELECTED MICRO-STYLE MANDATE`.
+- **Unexpected & Whimsical Mashups**: Combine charming subjects with playful activities, cozy settings, or imaginative props.
+- **Coloring-Optimized Layout**: Ensure the concept features clear focal elements and spacious, satisfying shapes to color without chaotic background clutter.
 
 ---
 
@@ -107,15 +93,12 @@ Output **ONLY** valid JSON:
 
 
 def get_creative_director_instructions(
-    creative_skill: Any = None,
     collection_context: str = None,
     target_keyword: str = None,
     target_audience: str = None,
     *args,
     **kwargs,
 ) -> str:
-    if not isinstance(creative_skill, str):
-        creative_skill = None
     if not isinstance(collection_context, str):
         collection_context = None
     if not isinstance(target_keyword, str):
@@ -124,14 +107,6 @@ def get_creative_director_instructions(
         target_audience = None
 
     ctx = get_agent_context()
-    if not creative_skill and ctx and ctx.creative_skill:
-        creative_skill = ctx.creative_skill
-    if not creative_skill or not creative_skill.strip():
-        creative_skill = (
-            "Thick Line Art – Bold, clean outlines with no shading or fills. "
-            "Pure black-and-white coloring book style."
-        )
-
     if collection_context is None and ctx:
         collection_context = ctx.collection_context
     if target_keyword is None and ctx:
@@ -164,18 +139,36 @@ def get_creative_director_instructions(
             f"   - `visual_tags`: MUST consist of clean, individual 1-2 word tags suitable for UI display chips. **NEVER put full multi-word search phrases or sentences**."
         )
 
+    micro_style_name = kwargs.get("micro_style_name")
+    micro_style_description = kwargs.get("micro_style_description")
+    if not micro_style_name and ctx:
+        micro_style_name = ctx.micro_style_name
+    if not micro_style_description and ctx:
+        micro_style_description = ctx.micro_style_description
+
+    micro_style_block = ""
+    if micro_style_name and micro_style_description:
+        micro_style_block = (
+            f"\n\n### SELECTED MICRO-STYLE MANDATE\n"
+            f"**Selected Micro-Style Name:** \"{micro_style_name}\"\n"
+            f"**Micro-Style Description & Mandate:** \"{micro_style_description}\"\n\n"
+            f"**MANDATE FOR IDEATION:**\n"
+            f"Your concept MUST be specifically conceptualized and tailored to be optimal for this selected style (\"{micro_style_name}\").\n"
+            f"Adapt the subject, framing, scene elements, and visual arrangement so it seamlessly aligns with the style description: \"{micro_style_description}\"."
+        )
+
     instructions = (
         INSTRUCTIONS_TEMPLATE.format(
             audience_block=audience_block,
-            creative_skill=creative_skill,
             collection_description_block=desc_block,
             target_audience=target_audience,
         )
         + keyword_block
+        + micro_style_block
     )
 
     logger.info(
-        f"🎨 [DYNAMIC PROMPT] Creative Director System Instructions initialized (Audience: '{target_audience}', Skill: '{creative_skill}')"
+        f"🎨 [DYNAMIC PROMPT] Creative Director System Instructions initialized (Audience: '{target_audience}', Micro-Style: '{micro_style_name}')"
     )
     return instructions
 

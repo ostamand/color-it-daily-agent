@@ -132,3 +132,33 @@ def mark_document_failed(
     )
     logger.info(f"Marked document '{document_id}' as failed (no_persist={no_persist}).")
 
+
+def get_document_status(
+    document_id: str,
+    no_persist: bool = False
+) -> str:
+    """
+    Fetches the status field of a document from Firestore or local document.json.
+    """
+    if no_persist:
+        local_dir = get_local_output_dir(document_id)
+        local_doc_path = os.path.join(local_dir, "document.json")
+        if os.path.exists(local_doc_path):
+            try:
+                with open(local_doc_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return data.get("status", "unknown")
+            except Exception as e:
+                logger.error(f"Failed to read local document.json for '{document_id}': {e}")
+        return "unknown"
+    else:
+        try:
+            db = get_db()
+            doc_ref = db.collection(configs.coloring_page_collection).document(document_id).get()
+            if doc_ref.exists:
+                return doc_ref.to_dict().get("status", "unknown")
+        except Exception as e:
+            logger.error(f"Failed to fetch document status for '{document_id}': {e}")
+        return "unknown"
+
+

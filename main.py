@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from google.adk.cli.fast_api import get_fast_api_app
 
 from color_it_daily_agent.pipeline import prepare_agent_execution
-from color_it_daily_agent.lib.persistence import mark_document_failed
+from color_it_daily_agent.lib.persistence import mark_document_failed, get_document_status
 
 logger = logging.getLogger("color_it_daily_agent")
 
@@ -69,8 +69,29 @@ async def process_agent_input_middleware(request: Request, call_next):
 
     try:
         response = await call_next(request)
-        if response.status_code >= 400 and ctx:
-            mark_document_failed(ctx.document_id, f"Execution failed with HTTP status {response.status_code}", ctx.no_persist)
+        if ctx:
+            doc_status = get_document_status(ctx.document_id, ctx.no_persist)
+            if response.status_code >= 400:
+                mark_document_failed(
+                    ctx.document_id,
+                    f"Execution failed with HTTP status {response.status_code}",
+                    ctx.no_persist,
+                )
+            elif doc_status != "PASS":
+                err_detail = (
+                    f"Agent execution completed with status '{doc_status}' "
+                    f"without publishing an approved document."
+                )
+                logger.error(f"❌ {err_detail} (doc_id={ctx.document_id})")
+                mark_document_failed(ctx.document_id, err_detail, ctx.no_persist)
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "detail": err_detail,
+                        "document_id": ctx.document_id,
+                        "status": "failed",
+                    },
+                )
         return response
     except Exception as exc:
         if ctx:

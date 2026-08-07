@@ -56,6 +56,7 @@ def main(
     collection_name: str = None,
     target_audience: str = None,
     target_keyword: str = None,
+    micro_style: str = None,
     no_persist: bool = False,
 ):
     token = get_cloud_token()
@@ -91,6 +92,8 @@ def main(
         user_request["target_audience"] = target_audience
     if target_keyword:
         user_request["target_keyword"] = target_keyword
+    if micro_style:
+        user_request["micro_style"] = micro_style
     if no_persist:
         user_request["no_persist"] = True
 
@@ -107,6 +110,8 @@ def main(
 
     print(f"Sending payload to {endpoint}/run: {json.dumps(user_request, indent=2)}")
     response = requests.post(f"{endpoint}/run", headers=headers, json=payload)
+    if response.status_code >= 400:
+        print(f"ERROR ({response.status_code}): {response.text}")
     response.raise_for_status()
 
     print("Assets generated successfully.")
@@ -137,6 +142,13 @@ if __name__ == "__main__":
         help="Target SEO keyword phrase (e.g. 'dinosaur colouring pages')",
     )
     parser.add_argument(
+        "--micro-style",
+        "-s",
+        type=str,
+        default=None,
+        help="Target micro-style name, slug, or ID (e.g. 'the-bold-sticker-hero-subject')",
+    )
+    parser.add_argument(
         "--no-persist",
         action="store_true",
         help="Disable persistence and save assets locally",
@@ -148,5 +160,6 @@ if __name__ == "__main__":
         collection_name=args.collection,
         target_audience=args.audience,
         target_keyword=args.keyword,
+        micro_style=args.micro_style,
         no_persist=args.no_persist,
     )
