@@ -30,7 +30,6 @@ def _get_api_headers() -> Dict[str, str]:
     api_key = os.environ.get("COLORITDAILY_API_KEY") or os.environ.get("API_KEY")
     if api_key:
         headers["x-api-key"] = api_key
-        headers["Authorization"] = f"Bearer {api_key}"
     return headers
 
 
