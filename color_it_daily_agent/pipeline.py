@@ -60,6 +60,11 @@ def prepare_agent_execution(input_payload: Dict[str, Any]) -> Tuple[AgentContext
     no_persist = bool(merged_payload.get("no_persist", False))
     merged_payload["no_persist"] = no_persist
 
+    is_user = bool(merged_payload.get("user", False) or merged_payload.get("is_user", False))
+    merged_payload["user"] = is_user
+    if is_user:
+        logger.info("⚡ User request flag set (user: True)")
+
     target_keyword = merged_payload.get("target_keyword")
     if target_keyword:
         target_keyword = str(target_keyword).strip()
@@ -100,7 +105,8 @@ def prepare_agent_execution(input_payload: Dict[str, Any]) -> Tuple[AgentContext
     logger.info(f"🎯 Target Audience set: '{target_audience}'")
 
     # 4. Generate Document ID & Pre-Create Document
-    document_id = str(uuid.uuid4())
+    document_id = str(merged_payload.get("document_id") or uuid.uuid4())
+    merged_payload["document_id"] = document_id
     pre_create_document(
         document_id=document_id,
         current_date=current_date,
@@ -115,6 +121,7 @@ def prepare_agent_execution(input_payload: Dict[str, Any]) -> Tuple[AgentContext
         current_date=current_date,
         collection_name=collection_name,
         no_persist=no_persist,
+        is_user=is_user,
         target_keyword=target_keyword,
         target_audience=target_audience,
         collection_context=collection_context,

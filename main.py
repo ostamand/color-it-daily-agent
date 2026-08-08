@@ -94,9 +94,23 @@ async def process_agent_input_middleware(request: Request, call_next):
                 )
         return response
     except Exception as exc:
+        err_str = str(exc)
+        is_429 = "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "QUOTA" in err_str.upper()
         if ctx:
-            mark_document_failed(ctx.document_id, str(exc), ctx.no_persist)
-        raise exc
+            mark_document_failed(ctx.document_id, err_str, ctx.no_persist)
+        
+        status_code = 429 if is_429 else 500
+        error_msg = f"Rate limit / quota exceeded (429): {err_str}" if is_429 else f"Agent execution error: {err_str}"
+        logger.error(f"❌ {error_msg}")
+        return JSONResponse(
+            status_code=status_code,
+            content={
+                "detail": error_msg,
+                "document_id": ctx.document_id if ctx else None,
+                "status": "failed",
+                "error_code": "RESOURCE_EXHAUSTED" if is_429 else "INTERNAL_ERROR"
+            },
+        )
 
 
 if __name__ == "__main__":

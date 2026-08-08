@@ -14,8 +14,8 @@ Usage Examples:
 2. Run against a specific collection with target keyword and target audience:
    python call-agent.py --endpoint http://localhost:8080 --collection "Wonder Daily" --audience "tweens_teens"
 
-3. Run in local-only no-persistence mode (saves assets locally to ./tmp/color_it_daily/):
-   python call-agent.py --endpoint http://localhost:8080 --collection "Wonder Daily" --no-persist
+4. Run as user-initiated request (saves to {COLLECTION}_user, skips de-duplication/embeddings):
+   python call-agent.py --endpoint http://localhost:8080 --collection "Wonder Daily" --user
 
 Arguments:
 ----------
@@ -23,7 +23,9 @@ Arguments:
   --collection      (Optional) The target collection name.
   --audience / -a   (Optional) Target audience tier ('toddler', 'kids_3_10', 'tweens_teens', 'young_adults', 'adults').
   --keyword / -k    (Optional) Target SEO keyword phrase (e.g. 'dinosaur colouring pages').
+  --micro-style / -s(Optional) Target micro-style name, slug, or ID (e.g. 'the-bold-sticker-hero-subject').
   --no-persist      (Optional) Disable Firestore & GCS writes; save all assets and document.json locally.
+  --user            (Optional) Flag request as user-initiated (user: true), saving to {COLLECTION}_user and bypassing de-duplication/embeddings.
 ==============================================================================
 """
 
@@ -58,6 +60,7 @@ def main(
     target_keyword: str = None,
     micro_style: str = None,
     no_persist: bool = False,
+    user: bool = False,
 ):
     token = get_cloud_token()
 
@@ -77,7 +80,6 @@ def main(
     response.raise_for_status()
     print("Session:", response.json())
 
-    # run the agent
     from datetime import datetime
 
     now = datetime.now()
@@ -96,6 +98,8 @@ def main(
         user_request["micro_style"] = micro_style
     if no_persist:
         user_request["no_persist"] = True
+    if user:
+        user_request["user"] = True
 
     payload = {
         "app_name": APP_NAME,
@@ -153,6 +157,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Disable persistence and save assets locally",
     )
+    parser.add_argument(
+        "--user",
+        action="store_true",
+        help="Flag request as user-initiated (user: true), saving to {COLLECTION}_user and bypassing de-duplication/embeddings",
+    )
     args = parser.parse_args()
 
     main(
@@ -162,4 +171,5 @@ if __name__ == "__main__":
         target_keyword=args.keyword,
         micro_style=args.micro_style,
         no_persist=args.no_persist,
+        user=args.user,
     )

@@ -2,6 +2,8 @@ import os
 from google import genai
 from google.genai.types import EmbedContentConfig
 
+from color_it_daily_agent.lib.retry_utils import retry_genai_call
+
 _client = None
 
 
@@ -10,6 +12,15 @@ def get_genai_client():
     if _client is None:
         _client = genai.Client()
     return _client
+
+
+@retry_genai_call
+def _call_embed_content(client, model, contents, config):
+    return client.models.embed_content(
+        model=model,
+        contents=contents,
+        config=config,
+    )
 
 
 def generate_embedding(
@@ -36,7 +47,8 @@ def generate_embedding(
     client = get_genai_client()
 
     try:
-        response = client.models.embed_content(
+        response = _call_embed_content(
+            client,
             model=model,
             contents=[text],
             config=EmbedContentConfig(

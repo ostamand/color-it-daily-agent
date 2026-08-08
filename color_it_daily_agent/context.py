@@ -21,6 +21,7 @@ class AgentContext:
     current_date: str
     collection_name: str = "Wonder Daily"
     no_persist: bool = False
+    is_user: bool = False
     target_keyword: Optional[str] = None
     target_audience: str = DEFAULT_TARGET_AUDIENCE
     collection_context: Optional[str] = None

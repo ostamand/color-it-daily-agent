@@ -11,6 +11,22 @@ logger = logging.getLogger(__name__)
 DEFAULT_LOCAL_DIR = os.path.join(os.getcwd(), "tmp", "color_it_daily")
 LOCAL_TEMP_DIR = os.environ.get("IMAGE_OUTPUT_DIR", DEFAULT_LOCAL_DIR)
 
+
+def get_coloring_page_collection_name(is_user: bool = False) -> str:
+    """
+    Returns the target Firestore collection name for coloring pages.
+    When is_user is True (or ctx.is_user is True), appends '_user' to COLORING_PAGE_COLLECTION.
+    """
+    base_col = configs.coloring_page_collection
+    if is_user:
+        return f"{base_col}_user"
+    from color_it_daily_agent.context import get_agent_context
+    ctx = get_agent_context()
+    if ctx and ctx.is_user:
+        return f"{base_col}_user"
+    return base_col
+
+
 def get_local_output_dir(document_id: str) -> str:
     """Returns the local output directory for a specific document run."""
     from color_it_daily_agent.context import get_agent_context
@@ -56,7 +72,9 @@ def pre_create_document(
     if not no_persist:
         try:
             db = get_db()
-            doc_ref = db.collection(configs.coloring_page_collection).document(document_id)
+            is_user = bool(input_payload.get("user") or input_payload.get("is_user"))
+            target_col = get_coloring_page_collection_name(is_user=is_user)
+            doc_ref = db.collection(target_col).document(document_id)
             doc_ref.set({
                 "status": "running",
                 "current_date": current_date,
@@ -65,7 +83,7 @@ def pre_create_document(
                 "created_at": now,
                 "updated_at": now,
             })
-            logger.info(f"Pre-created Firestore document '{document_id}' with status 'running'.")
+            logger.info(f"Pre-created Firestore document '{document_id}' in '{target_col}' with status 'running'.")
         except Exception as e:
             logger.error(f"Failed to pre-create Firestore document '{document_id}': {e}")
     else:
@@ -107,9 +125,10 @@ def update_document(
     if not no_persist:
         try:
             db = get_db()
-            doc_ref = db.collection(configs.coloring_page_collection).document(document_id)
+            target_col = get_coloring_page_collection_name()
+            doc_ref = db.collection(target_col).document(document_id)
             doc_ref.set(updates, merge=True)
-            logger.info(f"Updated Firestore document '{document_id}'.")
+            logger.info(f"Updated Firestore document '{document_id}' in '{target_col}'.")
         except Exception as e:
             logger.error(f"Failed to update Firestore document '{document_id}': {e}")
 
@@ -133,6 +152,56 @@ def mark_document_failed(
     logger.info(f"Marked document '{document_id}' as failed (no_persist={no_persist}).")
 
 
+def gcs_to_public_url(path: Any) -> Any:
+    """
+    Converts a gs:// bucket path into a public https://storage.googleapis.com/ URL.
+    Returns non-string or non-gs:// paths unchanged.
+    """
+    if not path or not isinstance(path, str):
+        return path
+    if path.startswith("gs://"):
+        return path.replace("gs://", "https://storage.googleapis.com/", 1)
+    return path
+
+
+def get_document_data(
+    document_id: str,
+    no_persist: bool = False,
+    is_user: bool = False
+) -> Dict[str, Any]:
+    """
+    Fetches full document metadata from local document.json or Firestore.
+    Converts any gs:// paths (e.g. optimized_image_path) to public URLs.
+    """
+    doc_data = {}
+    if no_persist:
+        local_dir = get_local_output_dir(document_id)
+        local_doc_path = os.path.join(local_dir, "document.json")
+        if os.path.exists(local_doc_path):
+            try:
+                with open(local_doc_path, "r", encoding="utf-8") as f:
+                    doc_data = json.load(f)
+            except Exception as e:
+                logger.error(f"Failed to read local document.json for '{document_id}': {e}")
+    else:
+        try:
+            db = get_db()
+            target_col = get_coloring_page_collection_name(is_user=is_user)
+            doc_ref = db.collection(target_col).document(document_id).get()
+            if doc_ref.exists:
+                doc_data = doc_ref.to_dict()
+        except Exception as e:
+            logger.error(f"Failed to fetch document '{document_id}': {e}")
+
+    if doc_data and isinstance(doc_data, dict):
+        if "optimized_image_path" in doc_data:
+            doc_data["optimized_image_path"] = gcs_to_public_url(doc_data.get("optimized_image_path"))
+        if "raw_image_path" in doc_data:
+            doc_data["raw_image_path"] = gcs_to_public_url(doc_data.get("raw_image_path"))
+
+    return doc_data or {}
+
+
 def get_document_status(
     document_id: str,
     no_persist: bool = False
@@ -140,25 +209,8 @@ def get_document_status(
     """
     Fetches the status field of a document from Firestore or local document.json.
     """
-    if no_persist:
-        local_dir = get_local_output_dir(document_id)
-        local_doc_path = os.path.join(local_dir, "document.json")
-        if os.path.exists(local_doc_path):
-            try:
-                with open(local_doc_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    return data.get("status", "unknown")
-            except Exception as e:
-                logger.error(f"Failed to read local document.json for '{document_id}': {e}")
-        return "unknown"
-    else:
-        try:
-            db = get_db()
-            doc_ref = db.collection(configs.coloring_page_collection).document(document_id).get()
-            if doc_ref.exists:
-                return doc_ref.to_dict().get("status", "unknown")
-        except Exception as e:
-            logger.error(f"Failed to fetch document status for '{document_id}': {e}")
-        return "unknown"
+    doc_data = get_document_data(document_id, no_persist=no_persist)
+    return doc_data.get("status", "unknown")
+
 
 

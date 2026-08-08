@@ -8,7 +8,7 @@ from google.cloud.firestore_v1.vector import Vector
 from google.adk.tools.tool_context import ToolContext
 from ...lib.embeddings import generate_embedding
 from ...lib.database import get_db
-from ...lib.persistence import update_document, get_local_output_dir
+from ...lib.persistence import update_document, get_local_output_dir, get_coloring_page_collection_name
 from ...context import get_agent_context
 from ...app_configs import configs
 
@@ -45,6 +45,9 @@ def publish_to_firestore(
 
     resolved_micro_style_desc = micro_style_description or (ctx.micro_style_description if ctx else None)
 
+    is_user = ctx.is_user if ctx else False
+    target_col = get_coloring_page_collection_name(is_user=is_user)
+
     metadata_payload = {
         "published": False,
         "title": title,
@@ -60,6 +63,7 @@ def publish_to_firestore(
         "status": status,
         "feedback": feedback,
         "collection_name": collection_name,
+        "user": is_user,
         "target_keyword": ctx.target_keyword if ctx else None,
         "agent_version": agent_version,
         "model_name": os.environ.get("MEDIA_MODEL"),
@@ -69,27 +73,30 @@ def publish_to_firestore(
 
     if no_persist:
         update_document(doc_id, metadata_payload, no_persist=True)
-        logger.info(f"[NO_PERSIST] Published document metadata locally for ID {doc_id}")
+        logger.info(f"[NO_PERSIST] Published document metadata locally for ID {doc_id} (user={is_user})")
         if tool_context:
             tool_context.actions.escalate = True
         return f"SUCCESS: Saved '{title}' locally to review (no_persist=True) with ID {doc_id}"
 
     db = get_db()
     batch = db.batch()
-    new_doc_ref = db.collection(configs.coloring_page_collection).document(doc_id)
+    new_doc_ref = db.collection(target_col).document(doc_id)
 
-    # Generate Embedding for semantic search
-    try:
-        embedding_vector = generate_embedding(description, task_type="RETRIEVAL_DOCUMENT")
-        if embedding_vector:
-            vector_ref = db.collection(configs.embedding_collection).document(doc_id)
-            vector_payload = {
-                "embedding": Vector(embedding_vector),
-                "published_date": published_date
-            }
-            batch.set(vector_ref, vector_payload, merge=True)
-    except Exception as e:
-        logger.warning(f"Could not generate embedding for doc '{doc_id}': {e}")
+    # Generate Embedding for semantic search (only for non-user requests)
+    if not is_user:
+        try:
+            embedding_vector = generate_embedding(description, task_type="RETRIEVAL_DOCUMENT")
+            if embedding_vector:
+                vector_ref = db.collection(configs.embedding_collection).document(doc_id)
+                vector_payload = {
+                    "embedding": Vector(embedding_vector),
+                    "published_date": published_date
+                }
+                batch.set(vector_ref, vector_payload, merge=True)
+        except Exception as e:
+            logger.warning(f"Could not generate embedding for doc '{doc_id}': {e}")
+    else:
+        logger.info(f"⚡ [USER REQUEST] Skipping EMBEDDING_COLLECTION write for doc '{doc_id}'")
 
     batch.set(new_doc_ref, metadata_payload, merge=True)
     batch.commit()
@@ -97,5 +104,5 @@ def publish_to_firestore(
     if tool_context:
         tool_context.actions.escalate = True
 
-    return f"SUCCESS: Published '{title}' to Firestore with ID {doc_id}"
+    return f"SUCCESS: Published '{title}' to Firestore collection '{target_col}' with ID {doc_id}"
 

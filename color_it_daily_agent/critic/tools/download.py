@@ -18,6 +18,9 @@ def download_image(gcs_path: str) -> str:
         print(f"Image is available locally at '{gcs_path}'")
         return gcs_path
 
+    if gcs_path.startswith("https://storage.googleapis.com/"):
+        gcs_path = f"gs://{gcs_path[len('https://storage.googleapis.com/'):]}"
+
     if not gcs_path.startswith("gs://"):
         raise ValueError(f"Invalid image path (not a GCS path and file does not exist): {gcs_path}")
 

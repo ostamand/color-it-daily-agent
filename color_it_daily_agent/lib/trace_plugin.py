@@ -97,10 +97,11 @@ class PromptTracePlugin(BasePlugin):
         else:
             try:
                 from color_it_daily_agent.lib.database import get_db
-                from color_it_daily_agent.app_configs import configs
+                from color_it_daily_agent.lib.persistence import get_coloring_page_collection_name
 
                 db = get_db()
-                doc_ref = db.collection(configs.coloring_page_collection).document(doc_id)
+                target_col = get_coloring_page_collection_name()
+                doc_ref = db.collection(target_col).document(doc_id)
                 doc_ref.set(
                     {"traces": firestore.ArrayUnion([trace_entry]), "updated_at": datetime.now(timezone.utc)},
                     merge=True,

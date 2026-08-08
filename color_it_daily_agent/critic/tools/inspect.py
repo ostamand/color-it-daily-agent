@@ -8,8 +8,18 @@ from google.genai import types
 from color_it_daily_agent.app_configs import configs
 from color_it_daily_agent.context import get_agent_context, DEFAULT_TARGET_AUDIENCE
 from color_it_daily_agent.critic.tools.download import download_image
+from color_it_daily_agent.lib.retry_utils import retry_genai_call
 
 logger = logging.getLogger(__name__)
+
+
+@retry_genai_call
+def _call_vision_inspection(client, model, contents, config):
+    return client.models.generate_content(
+        model=model,
+        contents=contents,
+        config=config,
+    )
 
 
 def inspect_image_visually(
@@ -161,7 +171,8 @@ Output **ONLY** a valid JSON object matching this schema:
 """
 
     try:
-        response = client.models.generate_content(
+        response = _call_vision_inspection(
+            client,
             model=configs.llm_model,
             contents=[
                 types.Part.from_bytes(data=image_bytes, mime_type="image/png"),

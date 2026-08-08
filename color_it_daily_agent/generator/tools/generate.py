@@ -11,8 +11,19 @@ from google.cloud import storage
 from color_it_daily_agent.app_configs import configs
 from color_it_daily_agent.context import get_agent_context
 from color_it_daily_agent.lib.persistence import get_local_output_dir
+from color_it_daily_agent.lib.retry_utils import retry_genai_call
 
 logger = logging.getLogger(__name__)
+
+
+@retry_genai_call
+def _call_generate_content(ai_client, model, contents, config):
+    return ai_client.models.generate_content(
+        model=model,
+        contents=contents,
+        config=config,
+    )
+
 
 def generate_image(positive_prompt: str) -> str:
     """
@@ -68,7 +79,8 @@ def generate_image(positive_prompt: str) -> str:
     )
 
     try:
-        response = ai_client.models.generate_content(
+        response = _call_generate_content(
+            ai_client,
             model=configs.media_model,
             contents=contents,
             config=generate_content_config,
