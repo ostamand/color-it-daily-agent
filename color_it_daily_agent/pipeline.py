@@ -14,7 +14,11 @@ from color_it_daily_agent.context import (
 from color_it_daily_agent.lib.firestore_config import load_firestore_input_overrides
 from color_it_daily_agent.lib.collections import get_collection, DEFAULT_COLLECTION_NAME
 from color_it_daily_agent.lib.micro_styles import resolve_micro_style
-from color_it_daily_agent.lib.persistence import pre_create_document, get_local_output_dir
+from color_it_daily_agent.lib.persistence import (
+    pre_create_document,
+    populate_test_mode_document,
+    get_local_output_dir,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +68,17 @@ def prepare_agent_execution(input_payload: Dict[str, Any]) -> Tuple[AgentContext
     merged_payload["user"] = is_user
     if is_user:
         logger.info("⚡ User request flag set (user: True)")
+
+    test_mode = bool(
+        merged_payload.get("test_mode", False)
+        or merged_payload.get("test", False)
+        or merged_payload.get("is_test", False)
+    )
+    merged_payload["test_mode"] = test_mode
+    if test_mode:
+        no_persist = True
+        merged_payload["no_persist"] = True
+        logger.info("🧪 Test mode enabled (test_mode: True) -> automatically enforced no_persist: True")
 
     target_keyword = merged_payload.get("target_keyword")
     if target_keyword:
@@ -122,6 +137,7 @@ def prepare_agent_execution(input_payload: Dict[str, Any]) -> Tuple[AgentContext
         collection_name=collection_name,
         no_persist=no_persist,
         is_user=is_user,
+        test_mode=test_mode,
         target_keyword=target_keyword,
         target_audience=target_audience,
         collection_context=collection_context,
@@ -137,3 +153,4 @@ def prepare_agent_execution(input_payload: Dict[str, Any]) -> Tuple[AgentContext
     set_agent_context(ctx)
 
     return ctx, merged_payload
+

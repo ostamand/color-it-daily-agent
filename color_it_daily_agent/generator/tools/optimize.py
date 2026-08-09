@@ -29,6 +29,34 @@ def optimize_image(image_path: str) -> str:
     ctx = get_agent_context()
     no_persist = ctx.no_persist if ctx else False
 
+    if ctx and ctx.test_mode:
+        if no_persist:
+            doc_id = ctx.document_id if ctx else str(uuid.uuid4())
+            output_dir = get_local_output_dir(doc_id)
+            final_png_path = os.path.join(output_dir, "optimized.png")
+            final_webp_path = os.path.join(output_dir, "optimized.webp")
+            final_svg_path = os.path.join(output_dir, "optimized.svg")
+            
+            from PIL import Image
+            for p in (final_png_path, final_webp_path):
+                if not os.path.exists(p):
+                    img = Image.new("RGB", (1024, 1024), color=(255, 255, 255))
+                    img.save(p)
+            if not os.path.exists(final_svg_path):
+                with open(final_svg_path, "w", encoding="utf-8") as f:
+                    f.write('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"></svg>')
+            logger.info(f"🧪 [TEST MODE] Optimized assets saved locally in '{output_dir}'")
+            return final_png_path
+
+        try:
+            from color_it_daily_agent.lib.persistence import fetch_existing_pass_document
+            pass_doc = fetch_existing_pass_document(is_user=ctx.is_user)
+            opt_path = pass_doc.get("optimized_image_path") or image_path
+        except Exception:
+            opt_path = image_path
+        logger.info(f"🧪 [TEST MODE] Bypassing Potrace vector optimization. Using optimized path '{opt_path}'")
+        return opt_path
+
     if subprocess.call(["which", "potrace"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) != 0:
         raise RuntimeError("The 'potrace' utility is not installed. Please install it (e.g., 'apt-get install potrace') to use this tool.")
 

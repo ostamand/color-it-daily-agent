@@ -213,4 +213,55 @@ def get_document_status(
     return doc_data.get("status", "unknown")
 
 
+def fetch_existing_pass_document(is_user: bool = False) -> Dict[str, Any]:
+    """
+    Queries Firestore for an existing document with status='PASS'.
+    """
+    db = get_db()
+    target_col = get_coloring_page_collection_name(is_user=is_user)
+
+    query = db.collection(target_col).where("status", "==", "PASS").limit(1).get()
+    if not query:
+        base_col = configs.coloring_page_collection
+        if target_col != base_col:
+            query = db.collection(base_col).where("status", "==", "PASS").limit(1).get()
+
+    if query:
+        return query[0].to_dict() or {}
+
+    raise RuntimeError(f"Test mode enabled, but no existing approved ('status: PASS') document was found in Firestore collection '{target_col}'.")
+
+
+def populate_test_mode_document(
+    document_id: str,
+    current_date: str,
+    collection_name: str,
+    no_persist: bool,
+    input_payload: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Populates document metadata in test mode by fetching an existing PASS document from Firestore
+    and writing it with status='PASS' for document_id.
+    """
+    is_user = bool(input_payload.get("user") or input_payload.get("is_user"))
+    existing_doc = fetch_existing_pass_document(is_user=is_user)
+
+    test_doc_data = dict(existing_doc)
+    test_doc_data.update({
+        "id": document_id,
+        "status": "PASS",
+        "current_date": current_date,
+        "collection_name": collection_name,
+        "no_persist": no_persist,
+        "input": input_payload,
+        "published": False,
+        "published_date": datetime.now(timezone.utc).isoformat()
+    })
+
+    update_document(document_id, test_doc_data, no_persist=no_persist)
+    logger.info(f"🧪 [TEST MODE] Populated document '{document_id}' with existing PASS document metadata from Firestore.")
+    return test_doc_data
+
+
+
 

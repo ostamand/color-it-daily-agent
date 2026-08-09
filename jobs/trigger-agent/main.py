@@ -86,6 +86,13 @@ def trigger_agent(request):
     else:
         is_user = os.environ.get("IS_USER", "").lower() in ("true", "1", "yes")
 
+    if "test_mode" in req_data:
+        test_mode = bool(req_data["test_mode"])
+    elif "test" in req_data:
+        test_mode = bool(req_data["test"])
+    else:
+        test_mode = os.environ.get("TEST_MODE", "").lower() in ("true", "1", "yes")
+
     document_id = req_data.get("document_id") or str(uuid.uuid4())
 
     try:
@@ -125,6 +132,8 @@ def trigger_agent(request):
             user_request["no_persist"] = True
         if is_user:
             user_request["user"] = True
+        if test_mode:
+            user_request["test_mode"] = True
 
         payload = {
             "app_name": APP_NAME,

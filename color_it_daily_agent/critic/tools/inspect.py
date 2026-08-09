@@ -49,6 +49,28 @@ def inspect_image_visually(
 
     logger.info(f"🧐 [VISUAL INSPECTION] Inspecting image: {image_path}")
 
+    ctx = get_agent_context()
+    if ctx and ctx.test_mode:
+        logger.info("🧪 [TEST MODE] Bypassing Gemini Vision QA API call. Returning passing report.")
+        passing_report = {
+            "has_border_or_frame": False,
+            "border_details": "None (Test Mode)",
+            "has_text_or_letters": False,
+            "text_details": "None (Test Mode)",
+            "is_child_safe": True,
+            "has_shading_or_gradients": False,
+            "matches_micro_style": True,
+            "is_comfortable_to_color": True,
+            "matches_prompt": True,
+            "prompt_alignment_details": "Passes prompt alignment (Test Mode)",
+            "has_good_anatomy_and_coherence": True,
+            "coherence_details": "Good anatomy and scene coherence (Test Mode)",
+            "complexity_details": "Appropriate complexity (Test Mode)",
+            "overall_visual_pass": True,
+            "rejection_reasons": []
+        }
+        return json.dumps(passing_report, indent=2)
+
     # 1. Ensure image is available locally
     local_path = download_image(gcs_path=image_path)
 

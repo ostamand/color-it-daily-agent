@@ -38,6 +38,25 @@ def generate_image(positive_prompt: str) -> str:
     ctx = get_agent_context()
     generation_id = ctx.document_id if ctx else str(uuid.uuid4())
 
+    if ctx and ctx.test_mode:
+        if ctx.no_persist:
+            local_dir = get_local_output_dir(generation_id)
+            raw_path = os.path.join(local_dir, "raw.png")
+            if not os.path.exists(raw_path):
+                from PIL import Image
+                img = Image.new("RGB", (1024, 1024), color=(255, 255, 255))
+                img.save(raw_path)
+            logger.info(f"🧪 [TEST MODE] Raw image saved locally to '{raw_path}'")
+            return raw_path
+        try:
+            from color_it_daily_agent.lib.persistence import fetch_existing_pass_document
+            pass_doc = fetch_existing_pass_document(is_user=ctx.is_user)
+            raw_path = pass_doc.get("raw_image_path") or f"gs://{configs.gcp_media_bucket}/raw/{generation_id}.png"
+        except Exception:
+            raw_path = f"gs://{configs.gcp_media_bucket}/raw/{generation_id}.png"
+        logger.info(f"🧪 [TEST MODE] Bypassing Vertex AI Imagen generation. Using raw path '{raw_path}'")
+        return raw_path
+
     ai_client = genai.Client(
         vertexai=True,
         project=configs.gcp_project,

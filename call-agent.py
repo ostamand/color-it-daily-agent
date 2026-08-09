@@ -61,6 +61,7 @@ def main(
     micro_style: str = None,
     no_persist: bool = False,
     user: bool = False,
+    test_mode: bool = False,
 ):
     token = get_cloud_token()
 
@@ -100,6 +101,8 @@ def main(
         user_request["no_persist"] = True
     if user:
         user_request["user"] = True
+    if test_mode:
+        user_request["test_mode"] = True
 
     payload = {
         "app_name": APP_NAME,
@@ -162,6 +165,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Flag request as user-initiated (user: true), saving to {COLLECTION}_user and bypassing de-duplication/embeddings",
     )
+    parser.add_argument(
+        "--test-mode",
+        "--test",
+        action="store_true",
+        help="Enable test mode to bypass generation and return a previously generated coloring page document",
+    )
     args = parser.parse_args()
 
     main(
@@ -172,4 +181,5 @@ if __name__ == "__main__":
         micro_style=args.micro_style,
         no_persist=args.no_persist,
         user=args.user,
+        test_mode=args.test_mode,
     )
