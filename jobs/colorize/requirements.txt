@@ -5,3 +5,4 @@ functions-framework
 python-dotenv
 Pillow
 tenacity
+psycopg2-binary

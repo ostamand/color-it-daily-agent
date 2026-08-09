@@ -3,6 +3,7 @@ import uuid
 import base64
 import logging
 from typing import Optional
+from PIL import Image
 
 from google import genai
 from google.genai import types
@@ -43,14 +44,14 @@ def generate_image(positive_prompt: str) -> str:
             local_dir = get_local_output_dir(generation_id)
             raw_path = os.path.join(local_dir, "raw.png")
             if not os.path.exists(raw_path):
-                from PIL import Image
                 img = Image.new("RGB", (1024, 1024), color=(255, 255, 255))
                 img.save(raw_path)
+
             logger.info(f"🧪 [TEST MODE] Raw image saved locally to '{raw_path}'")
             return raw_path
         try:
             from color_it_daily_agent.lib.persistence import fetch_existing_pass_document
-            pass_doc = fetch_existing_pass_document(is_user=ctx.is_user)
+            pass_doc = fetch_existing_pass_document(org_id=ctx.org_id if ctx else 0, is_user=ctx.is_user if ctx else False)
             raw_path = pass_doc.get("raw_image_path") or f"gs://{configs.gcp_media_bucket}/raw/{generation_id}.png"
         except Exception:
             raw_path = f"gs://{configs.gcp_media_bucket}/raw/{generation_id}.png"

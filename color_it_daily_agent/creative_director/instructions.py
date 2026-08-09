@@ -152,7 +152,16 @@ def get_creative_director_instructions(
             f"Adapt the subject, framing, scene elements, and visual arrangement so it seamlessly aligns with the style description: \"{micro_style_description}\"."
         )
 
-    is_user = kwargs.get("user") or kwargs.get("is_user") or (ctx.is_user if ctx else False)
+    raw_org_id = kwargs.get("org_id")
+    if raw_org_id is None and ctx:
+        org_id = ctx.org_id
+    else:
+        try:
+            org_id = int(raw_org_id) if raw_org_id is not None else 0
+        except (ValueError, TypeError):
+            org_id = 0
+
+    is_user = (org_id != 0) or bool(kwargs.get("user") or kwargs.get("is_user") or (ctx.is_user if ctx else False))
 
     if is_user:
         deduplication_step_block = "\n* **Finalize Output:** Format as valid JSON."
@@ -175,7 +184,7 @@ def get_creative_director_instructions(
     )
 
     logger.info(
-        f"🎨 [DYNAMIC PROMPT] Creative Director System Instructions initialized (Audience: '{target_audience}', Micro-Style: '{micro_style_name}', User: {is_user})"
+        f"🎨 [DYNAMIC PROMPT] Creative Director System Instructions initialized (Audience: '{target_audience}', Micro-Style: '{micro_style_name}', OrgID: {org_id})"
     )
     return instructions
 

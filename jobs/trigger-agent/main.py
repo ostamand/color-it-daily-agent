@@ -38,7 +38,7 @@ def gcs_to_public_url(path: str) -> str:
     return path
 
 
-def fetch_document_data(document_id: str, is_user: bool = False) -> dict:
+def fetch_document_data(document_id: str, org_id: int = 0, is_user: bool = False) -> dict:
     """
     Fetches generated document metadata from Firestore.
     """
@@ -47,7 +47,7 @@ def fetch_document_data(document_id: str, is_user: bool = False) -> dict:
     try:
         db = firestore.Client()
         collection_base = os.environ.get("COLORING_PAGE_COLLECTION", "coloring_pages")
-        target_col = f"{collection_base}_user" if is_user else collection_base
+        target_col = f"{collection_base}_user" if (org_id != 0 or is_user) else collection_base
         doc_ref = db.collection(target_col).document(document_id).get()
         if doc_ref.exists:
             return doc_ref.to_dict() or {}
@@ -74,17 +74,20 @@ def trigger_agent(request):
     target_audience = req_data.get("audience") or req_data.get("target_audience") or os.environ.get("TARGET_AUDIENCE")
     micro_style = req_data.get("micro_style") or req_data.get("selected_style") or os.environ.get("MICRO_STYLE")
     
+    user_email = req_data.get("user_email") or os.environ.get("USER_EMAIL")
+    raw_org_id = req_data.get("org_id") if "org_id" in req_data else os.environ.get("ORG_ID", 0)
+    try:
+        org_id = int(raw_org_id) if raw_org_id is not None else 0
+    except (ValueError, TypeError):
+        org_id = 0
+    org_name = req_data.get("org_name") or os.environ.get("ORG_NAME")
+
     if "no_persist" in req_data:
         no_persist = bool(req_data["no_persist"])
     else:
         no_persist = os.environ.get("NO_PERSIST", "").lower() in ("true", "1", "yes")
 
-    if "user" in req_data:
-        is_user = bool(req_data["user"])
-    elif "is_user" in req_data:
-        is_user = bool(req_data["is_user"])
-    else:
-        is_user = os.environ.get("IS_USER", "").lower() in ("true", "1", "yes")
+    is_user = (org_id != 0) or bool(req_data.get("user") or req_data.get("is_user") or os.environ.get("IS_USER", "").lower() in ("true", "1", "yes"))
 
     if "test_mode" in req_data:
         test_mode = bool(req_data["test_mode"])
@@ -118,6 +121,9 @@ def trigger_agent(request):
         user_request = {
             "current_date": current_date_str,
             "document_id": document_id,
+            "user_email": user_email,
+            "org_id": org_id,
+            "org_name": org_name,
         }
         
         if collection_name:
@@ -130,8 +136,6 @@ def trigger_agent(request):
             user_request["micro_style"] = micro_style
         if no_persist:
             user_request["no_persist"] = True
-        if is_user:
-            user_request["user"] = True
         if test_mode:
             user_request["test_mode"] = True
 
@@ -156,7 +160,7 @@ def trigger_agent(request):
         logger.info("Agent run completed successfully.")
         
         # 5. Fetch Generated Document Details
-        doc_data = fetch_document_data(document_id, is_user=is_user)
+        doc_data = fetch_document_data(document_id, org_id=org_id, is_user=is_user)
         
         opt_path = doc_data.get("optimized_image_path")
         public_img_url = gcs_to_public_url(opt_path)

@@ -1,14 +1,5 @@
 import os
 import uuid
-import subprocess
-import tempfile
-from PIL import Image
-import cairosvg
-from google.cloud import storage
-from color_it_daily_agent.app_configs import configs
-
-import os
-import uuid
 import logging
 import subprocess
 import tempfile
@@ -37,11 +28,11 @@ def optimize_image(image_path: str) -> str:
             final_webp_path = os.path.join(output_dir, "optimized.webp")
             final_svg_path = os.path.join(output_dir, "optimized.svg")
             
-            from PIL import Image
             for p in (final_png_path, final_webp_path):
                 if not os.path.exists(p):
                     img = Image.new("RGB", (1024, 1024), color=(255, 255, 255))
                     img.save(p)
+
             if not os.path.exists(final_svg_path):
                 with open(final_svg_path, "w", encoding="utf-8") as f:
                     f.write('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"></svg>')

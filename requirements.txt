@@ -7,3 +7,4 @@ python-dotenv
 cairosvg
 Pillow
 SQLAlchemy
+psycopg2-binary

@@ -23,6 +23,10 @@ class AgentContext:
     no_persist: bool = False
     is_user: bool = False
     test_mode: bool = False
+    user_email: Optional[str] = None
+    user_id: Optional[int] = None
+    org_id: int = 0
+    org_name: Optional[str] = None
     target_keyword: Optional[str] = None
     target_audience: str = DEFAULT_TARGET_AUDIENCE
     collection_context: Optional[str] = None

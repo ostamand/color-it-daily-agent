@@ -14,8 +14,8 @@ Usage Examples:
 2. Run against a specific collection with target keyword and target audience:
    python call-agent.py --endpoint http://localhost:8080 --collection "Wonder Daily" --audience "tweens_teens"
 
-4. Run as user-initiated request (saves to {COLLECTION}_user, skips de-duplication/embeddings):
-   python call-agent.py --endpoint http://localhost:8080 --collection "Wonder Daily" --user
+3. Run as user/organization-initiated request (saves to {COLLECTION}_user, user=true in Postgres):
+   python call-agent.py --endpoint http://localhost:8080 --org-id 1 --org-name "Color It Daily Users" --user-email "test@coloritdaily.com"
 
 Arguments:
 ----------
@@ -25,7 +25,10 @@ Arguments:
   --keyword / -k    (Optional) Target SEO keyword phrase (e.g. 'dinosaur colouring pages').
   --micro-style / -s(Optional) Target micro-style name, slug, or ID (e.g. 'the-bold-sticker-hero-subject').
   --no-persist      (Optional) Disable Firestore & GCS writes; save all assets and document.json locally.
-  --user            (Optional) Flag request as user-initiated (user: true), saving to {COLLECTION}_user and bypassing de-duplication/embeddings.
+  --user-email      (Optional) User email address for user-initiated request.
+  --org-id          (Optional) Organization ID (non-zero routes to coloring_pages_user and sets user=true in Postgres).
+  --org-name        (Optional) Organization name.
+  --test-mode / --test (Optional) Enable test mode to bypass Vertex AI generation using cached test output.
 ==============================================================================
 """
 
@@ -60,7 +63,8 @@ def main(
     target_keyword: str = None,
     micro_style: str = None,
     no_persist: bool = False,
-    user: bool = False,
+    user_email: str = None,
+    user_id: int = None,
     test_mode: bool = False,
 ):
     token = get_cloud_token()
@@ -89,6 +93,10 @@ def main(
     user_request = {
         "current_date": current_date_str,
     }
+    if user_id is not None:
+        user_request["user_id"] = user_id
+    if user_email:
+        user_request["user_email"] = user_email
     if collection_name:
         user_request["collection_name"] = collection_name
     if target_audience:
@@ -99,8 +107,6 @@ def main(
         user_request["micro_style"] = micro_style
     if no_persist:
         user_request["no_persist"] = True
-    if user:
-        user_request["user"] = True
     if test_mode:
         user_request["test_mode"] = True
 
@@ -161,9 +167,16 @@ if __name__ == "__main__":
         help="Disable persistence and save assets locally",
     )
     parser.add_argument(
-        "--user",
-        action="store_true",
-        help="Flag request as user-initiated (user: true), saving to {COLLECTION}_user and bypassing de-duplication/embeddings",
+        "--user-id",
+        type=int,
+        default=None,
+        help="User ID for the request (references organization_users.id)",
+    )
+    parser.add_argument(
+        "--user-email",
+        type=str,
+        default=None,
+        help="User email address for the request (optional if user-id is provided)",
     )
     parser.add_argument(
         "--test-mode",
@@ -180,6 +193,7 @@ if __name__ == "__main__":
         target_keyword=args.keyword,
         micro_style=args.micro_style,
         no_persist=args.no_persist,
-        user=args.user,
+        user_email=args.user_email,
+        user_id=args.user_id,
         test_mode=args.test_mode,
     )

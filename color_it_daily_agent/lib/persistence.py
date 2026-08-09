@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 from color_it_daily_agent.app_configs import configs
 from color_it_daily_agent.lib.database import get_db
@@ -12,7 +12,7 @@ DEFAULT_LOCAL_DIR = os.path.join(os.getcwd(), "tmp", "color_it_daily")
 LOCAL_TEMP_DIR = os.environ.get("IMAGE_OUTPUT_DIR", DEFAULT_LOCAL_DIR)
 
 
-def get_coloring_page_collection_name(is_user: bool = False) -> str:
+def get_coloring_page_collection_name(is_user: bool = False, org_id: Optional[int] = None) -> str:
     """
     Returns the target Firestore collection name for coloring pages.
     When is_user is True (or ctx.is_user is True), appends '_user' to COLORING_PAGE_COLLECTION.
@@ -22,9 +22,12 @@ def get_coloring_page_collection_name(is_user: bool = False) -> str:
         return f"{base_col}_user"
     from color_it_daily_agent.context import get_agent_context
     ctx = get_agent_context()
-    if ctx and ctx.is_user:
+    if ctx and (ctx.is_user or (ctx.user_id is not None)):
+        return f"{base_col}_user"
+    if org_id is not None and org_id != 0:
         return f"{base_col}_user"
     return base_col
+
 
 
 def get_local_output_dir(document_id: str) -> str:
@@ -53,12 +56,20 @@ def pre_create_document(
     Otherwise, writes to Firestore.
     """
     now = datetime.now(timezone.utc)
+    org_id = int(input_payload.get("org_id", 0))
+    user_email = input_payload.get("user_email")
+    org_name = input_payload.get("org_name")
+
+
     doc_data = {
         "id": document_id,
         "status": "running",
         "current_date": current_date,
         "collection_name": collection_name,
         "no_persist": no_persist,
+        "user_email": user_email,
+        "org_id": org_id,
+        "org_name": org_name,
         "input": input_payload,
         "created_at": now.isoformat(),
         "updated_at": now.isoformat(),
@@ -72,13 +83,15 @@ def pre_create_document(
     if not no_persist:
         try:
             db = get_db()
-            is_user = bool(input_payload.get("user") or input_payload.get("is_user"))
-            target_col = get_coloring_page_collection_name(is_user=is_user)
+            target_col = get_coloring_page_collection_name(org_id=org_id)
             doc_ref = db.collection(target_col).document(document_id)
             doc_ref.set({
                 "status": "running",
                 "current_date": current_date,
                 "collection_name": collection_name,
+                "user_email": user_email,
+                "org_id": org_id,
+                "org_name": org_name,
                 "input": input_payload,
                 "created_at": now,
                 "updated_at": now,
@@ -167,6 +180,7 @@ def gcs_to_public_url(path: Any) -> Any:
 def get_document_data(
     document_id: str,
     no_persist: bool = False,
+    org_id: Optional[int] = None,
     is_user: bool = False
 ) -> Dict[str, Any]:
     """
@@ -186,7 +200,7 @@ def get_document_data(
     else:
         try:
             db = get_db()
-            target_col = get_coloring_page_collection_name(is_user=is_user)
+            target_col = get_coloring_page_collection_name(org_id=org_id, is_user=is_user)
             doc_ref = db.collection(target_col).document(document_id).get()
             if doc_ref.exists:
                 doc_data = doc_ref.to_dict()
@@ -213,12 +227,12 @@ def get_document_status(
     return doc_data.get("status", "unknown")
 
 
-def fetch_existing_pass_document(is_user: bool = False) -> Dict[str, Any]:
+def fetch_existing_pass_document(org_id: Optional[int] = None, is_user: bool = False) -> Dict[str, Any]:
     """
     Queries Firestore for an existing document with status='PASS'.
     """
     db = get_db()
-    target_col = get_coloring_page_collection_name(is_user=is_user)
+    target_col = get_coloring_page_collection_name(org_id=org_id, is_user=is_user)
 
     query = db.collection(target_col).where("status", "==", "PASS").limit(1).get()
     if not query:
@@ -243,8 +257,12 @@ def populate_test_mode_document(
     Populates document metadata in test mode by fetching an existing PASS document from Firestore
     and writing it with status='PASS' for document_id.
     """
-    is_user = bool(input_payload.get("user") or input_payload.get("is_user"))
-    existing_doc = fetch_existing_pass_document(is_user=is_user)
+    org_id = int(input_payload.get("org_id", 0))
+    user_email = input_payload.get("user_email")
+    org_name = input_payload.get("org_name")
+
+
+    existing_doc = fetch_existing_pass_document(org_id=org_id)
 
     test_doc_data = dict(existing_doc)
     test_doc_data.update({
@@ -253,6 +271,9 @@ def populate_test_mode_document(
         "current_date": current_date,
         "collection_name": collection_name,
         "no_persist": no_persist,
+        "user_email": input_payload.get("user_email"),
+        "org_id": org_id,
+        "org_name": input_payload.get("org_name"),
         "input": input_payload,
         "published": False,
         "published_date": datetime.now(timezone.utc).isoformat()

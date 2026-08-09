@@ -64,10 +64,42 @@ def prepare_agent_execution(input_payload: Dict[str, Any]) -> Tuple[AgentContext
     no_persist = bool(merged_payload.get("no_persist", False))
     merged_payload["no_persist"] = no_persist
 
-    is_user = bool(merged_payload.get("user", False) or merged_payload.get("is_user", False))
-    merged_payload["user"] = is_user
+    raw_user_id = merged_payload.get("user_id")
+    user_id = None
+    if raw_user_id is not None:
+        try:
+            user_id = int(raw_user_id)
+        except (ValueError, TypeError):
+            user_id = None
+
+    user_email = merged_payload.get("user_email")
+    if user_email is not None and str(user_email).strip():
+        user_email = str(user_email).strip()
+    else:
+        user_email = None
+
+    # Resolve user_id / org_id / user_email from PostgreSQL organization_users in one query
+    org_id = 0
+    if user_email:
+        from color_it_daily_agent.lib.postgres import lookup_user_by_email
+        result = lookup_user_by_email(user_email)
+        if result:
+            user_id, org_id, user_email = result
+    elif user_id:
+        from color_it_daily_agent.lib.postgres import lookup_user_by_id
+        result = lookup_user_by_id(user_id)
+        if result:
+            user_id, org_id, user_email = result
+
+    is_user = (user_id is not None)
+
+    merged_payload["user_id"] = user_id
+    merged_payload["user_email"] = user_email
+    merged_payload["is_user"] = is_user
+
     if is_user:
-        logger.info("⚡ User request flag set (user: True)")
+        logger.info(f"⚡ User request flag set (user_id: {user_id}, org_id: {org_id}, user_email: '{user_email}')")
+
 
     test_mode = bool(
         merged_payload.get("test_mode", False)
@@ -138,6 +170,10 @@ def prepare_agent_execution(input_payload: Dict[str, Any]) -> Tuple[AgentContext
         no_persist=no_persist,
         is_user=is_user,
         test_mode=test_mode,
+        user_email=user_email,
+        user_id=user_id,
+        org_id=org_id,
+        org_name=None,
         target_keyword=target_keyword,
         target_audience=target_audience,
         collection_context=collection_context,

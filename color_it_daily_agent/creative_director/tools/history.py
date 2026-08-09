@@ -107,8 +107,8 @@ def search_past_concepts(concept_description: str) -> list[dict]:
     """
     from ...context import get_agent_context
     ctx = get_agent_context()
-    if ctx and ctx.is_user:
-        logger.info("⚡ [USER REQUEST] Bypassing search_past_concepts vector similarity search.")
+    if ctx and (ctx.org_id != 0 or ctx.is_user):
+        logger.info("⚡ [USER/ORG REQUEST] Bypassing search_past_concepts vector similarity search.")
         return []
 
     db = get_db()

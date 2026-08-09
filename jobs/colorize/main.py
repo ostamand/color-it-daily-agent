@@ -1,8 +1,6 @@
 import os
 import logging
-import uuid
 import base64
-import json
 import io
 import functions_framework
 from google.cloud import firestore
@@ -10,10 +8,10 @@ from google.cloud import storage
 from google import genai
 from google.genai import types
 from PIL import Image
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from dotenv import load_dotenv
-import time
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, before_sleep_log
+import psycopg2
 
 # Load environment variables for local development
 load_dotenv()
@@ -26,7 +24,14 @@ logger = logging.getLogger(__name__)
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT")
 COLORING_PAGE_COLLECTION = os.environ.get("COLORING_PAGE_COLLECTION", "coloring_pages")
 GCP_LOCATION = os.environ.get("GCP_LOCATION", "us-central1")
-MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.0-flash-exp") # Default to a capable vision model
+MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.0-flash-exp")
+
+# PostgreSQL credentials
+POSTGRES_HOST = os.environ.get("POSTGRES_HOST")
+POSTGRES_PORT = os.environ.get("POSTGRES_PORT", "5432")
+POSTGRES_DB = os.environ.get("POSTGRES_DB")
+POSTGRES_USER = os.environ.get("POSTGRES_USER")
+POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD")
 
 def get_style_instruction(audience: str, mood: str, tags: List[str]) -> str:
     """
@@ -101,22 +106,74 @@ def colorize_image(cloud_event):
     logger.info(f"Processing file: gs://{bucket_name}/{file_name}")
 
 @retry(
-    retry=retry_if_exception_type(ValueError), # Retry if we raise ValueError for missing doc
-    stop=stop_after_attempt(10), # Try for a bit longer (e.g. up to ~2 mins total with backoff)
+    retry=retry_if_exception_type(ValueError),
+    stop=stop_after_attempt(10),
     wait=wait_exponential(multiplier=1, min=2, max=15),
     before_sleep=before_sleep_log(logger, logging.INFO)
 )
-def fetch_firestore_document(db_client, collection_name, doc_id):
+def fetch_firestore_document(db_client, doc_id) -> Tuple:
     """
-    Fetches a Firestore document with retry logic if it doesn't exist yet.
+    Fetches a Firestore document with retry logic, trying both base and _user collections.
+    Returns (doc, doc_ref).
     """
-    doc_ref = db_client.collection(collection_name).document(doc_id)
-    doc = doc_ref.get()
-    
-    if not doc.exists:
-        raise ValueError(f"Document {doc_id} not found yet.")
-    
-    return doc, doc_ref
+    for collection_name in [COLORING_PAGE_COLLECTION, f"{COLORING_PAGE_COLLECTION}_user"]:
+        doc_ref = db_client.collection(collection_name).document(doc_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            logger.info(f"Found Firestore document '{doc_id}' in collection '{collection_name}'")
+            return doc, doc_ref
+
+    raise ValueError(f"Document '{doc_id}' not found in any Firestore collection yet.")
+
+
+class _RowNotFound(ValueError):
+    """Raised when the pages row doesn't exist yet in PostgreSQL."""
+    pass
+
+
+@retry(
+    retry=retry_if_exception_type(_RowNotFound),
+    stop=stop_after_attempt(10),                      # ~2 min total with backoff
+    wait=wait_exponential(multiplier=1, min=5, max=30),
+    before_sleep=before_sleep_log(logger, logging.INFO)
+)
+def update_postgres_colored_path(document_id: str, public_colored_url: str) -> None:
+    """
+    Updates the colored_path column in the PostgreSQL pages table for the given document_id.
+    Retries if the row doesn't exist yet (i.e. agent hasn't finished publishing to Postgres).
+    """
+    if not POSTGRES_HOST or not POSTGRES_DB or not POSTGRES_USER:
+        logger.warning("PostgreSQL configuration missing. Skipping Postgres update.")
+        return
+
+    conn = psycopg2.connect(
+        host=POSTGRES_HOST,
+        port=POSTGRES_PORT,
+        dbname=POSTGRES_DB,
+        user=POSTGRES_USER,
+        password=POSTGRES_PASSWORD,
+    )
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            'UPDATE pages SET colored_path = %s WHERE document_id = %s',
+            (public_colored_url, document_id)
+        )
+        rows_updated = cursor.rowcount
+        conn.commit()
+        cursor.close()
+        if rows_updated > 0:
+            logger.info(f"Updated PostgreSQL pages.colored_path for document_id='{document_id}'")
+        else:
+            logger.info(f"Row not found yet for document_id='{document_id}', will retry...")
+            raise _RowNotFound(document_id)
+    except _RowNotFound:
+        raise  # let tenacity handle it
+    except Exception as e:
+        logger.error(f"Failed to update PostgreSQL colored_path for document_id='{document_id}': {e}")
+    finally:
+        conn.close()
+
 
 @functions_framework.cloud_event
 def colorize_image(cloud_event):
@@ -145,17 +202,18 @@ def colorize_image(cloud_event):
         # 2. Fetch Metadata from Firestore (with retry)
         db_firestore = firestore.Client(project=PROJECT_ID)
         try:
-            doc, doc_ref = fetch_firestore_document(db_firestore, COLORING_PAGE_COLLECTION, image_id)
+            doc, doc_ref = fetch_firestore_document(db_firestore, image_id)
         except Exception as e:
             logger.error(f"Failed to fetch metadata for {image_id} after retries: {e}")
-            return # Exit if we truly can't find the metadata
+            return  # Exit if we truly can't find the metadata
 
         metadata = doc.to_dict()
         description = metadata.get("description", "")
         mood = metadata.get("mood", "")
         tags = metadata.get("visual_tags", [])
         audience = metadata.get("target_audience", "child")
-        
+        document_id = metadata.get("document_id") or image_id
+
         # 3. Construct Paths
         # Raw Image Path (Input for Gemini)
         raw_image_uri = f"gs://{bucket_name}/raw/{image_id}.png"
@@ -252,10 +310,13 @@ def colorize_image(cloud_event):
         # 7. Update Firestore with new colored path
         try:
             doc_ref.update({"colored_image_path": public_colored_url})
-            logger.info(f"Updated Firestore document {image_id} with colored_image_path: {public_colored_url}")
+            logger.info(f"Updated Firestore document '{image_id}' with colored_image_path: {public_colored_url}")
         except Exception as e:
             logger.error(f"Firestore Update Failed: {e}")
             raise e
+
+        # 8. Update PostgreSQL pages table with colored_path
+        update_postgres_colored_path(document_id, public_colored_url)
 
     except Exception as e:
         logger.error(f"Error processing {file_name}: {e}")

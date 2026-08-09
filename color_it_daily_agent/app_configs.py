@@ -16,6 +16,11 @@ class Configs:
     embedding_collection: str
     coloring_page_collection: str
     gcp_media_bucket: str
+    postgres_host: str = ""
+    postgres_port: str = "5432"
+    postgres_db: str = ""
+    postgres_user: str = ""
+    postgres_password: str = ""
 
     @classmethod
     def from_env(cls):
@@ -34,7 +39,13 @@ class Configs:
             gcp_media_bucket=media_bucket,
             local_persistence=os.environ.get("LOCAL_PERSISTENCE", "false").lower()
             in ("true", "1", "yes"),
+            postgres_host=os.environ.get("POSTGRES_HOST", ""),
+            postgres_port=os.environ.get("POSTGRES_PORT", "5432"),
+            postgres_db=os.environ.get("POSTGRES_DB", ""),
+            postgres_user=os.environ.get("POSTGRES_USER", ""),
+            postgres_password=os.environ.get("POSTGRES_PASSWORD", ""),
         )
+
 
 try:
     configs = Configs.from_env()

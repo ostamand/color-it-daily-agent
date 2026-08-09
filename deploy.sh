@@ -43,9 +43,15 @@ gcloud run deploy color-it-daily-agent \
 	--set-env-vars AGENT_VERSION="$(git rev-parse HEAD)" \
 	--set-env-vars COLORITDAILY_API_KEY="${COLORITDAILY_API_KEY}" \
 	--set-env-vars WEBSITE_BASE_URL="${WEBSITE_BASE_URL}" \
+	--set-env-vars POSTGRES_HOST="${POSTGRES_HOST}" \
+	--set-env-vars POSTGRES_PORT="${POSTGRES_PORT}" \
+	--set-env-vars POSTGRES_DB="${POSTGRES_DB}" \
+	--set-env-vars POSTGRES_USER="${POSTGRES_USER}" \
+	--set-env-vars POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" \
 	--min-instances 0 \
 	--max-instances 2 \
 	--platform managed \
 	--no-allow-unauthenticated
+
 
 echo "🎉 Deployment successfully completed!"
