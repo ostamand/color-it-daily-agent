@@ -223,3 +223,4 @@ Makefile
 
 tmp/
 sessions.db
+REFERENCE_ARCHITECTURE.md
