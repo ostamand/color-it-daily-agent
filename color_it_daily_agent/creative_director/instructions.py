@@ -27,6 +27,29 @@ AUDIENCE_GUIDELINES = {
     ),
 }
 
+SEO_COPY_RULES = """### 📄 SEO COPY RULES (long_description, meta_description, target_keyword)
+
+1. `target_keyword`:
+   - 2–5 words, a real, natural search phrase (e.g. "dinosaur sandcastle coloring page").
+   - If a target keyword was provided in the context, use that exact phrase (trimmed and lowercased). Otherwise propose a natural, high-intent search phrase matching the scene.
+
+2. `long_description`:
+   - 80–150 words of on-page SEO copy written for parents, kids, and teachers in plain, friendly English.
+   - Scene Accuracy: Describe what is in the scene—mention the primary subject and 2–4 real scene elements. Describe ONLY elements that are in the scene description and visual tags, with no invented details.
+   - Coloring Tips: Include 1–2 concrete coloring tips (e.g. suggested color palette, which areas to start coloring first, or using thick outer lines for neat coloring).
+   - Age Fit: State the age fit clearly (tailored to the target audience when known, otherwise a friendly general range).
+   - Safety & Tone: Child-safe, warm, and engaging.
+   - No Keyword Stuffing: Mention the target keyword at most twice naturally.
+   - NEVER mention AI, prompts, generators, or algorithms.
+   - Do not add brand suffixes or promotional filler.
+
+3. `meta_description`:
+   - 140–160 characters (must strictly stay within 120–170 characters).
+   - Naturally includes the target keyword exactly once.
+   - Unique, compelling summary per page that encourages parents, teachers, and kids to click and print.
+   - Child-safe, plain friendly English, no brand suffixes, never mention AI.
+"""
+
 INSTRUCTIONS_TEMPLATE = """
 # System Instruction: The Creative Director
 
@@ -81,7 +104,10 @@ Output **ONLY** valid JSON:
   "visual_tags": ["String", "String", "String", "String"],
   "target_audience": "{target_audience}",
   "complexity": "low" | "medium" | "high",
-  "mood": "String (e.g. Playful, Dreamy, Whimsical, Energetic, Calm, Serene)"
+  "mood": "String (e.g. Playful, Dreamy, Whimsical, Energetic, Calm, Serene)",
+  "target_keyword": "String (2–5 words, real search phrase)",
+  "long_description": "String (80–150 words on-page SEO copy covering scene elements, 1-2 coloring tips, and age fit)",
+  "meta_description": "String (140–160 characters search snippet naturally including target keyword once)"
 }}
 ```
 """
@@ -121,6 +147,7 @@ def get_creative_director_instructions(
 
     keyword_block = ""
     if target_keyword:
+        target_keyword = target_keyword.strip().lower()
         keyword_block = (
             f"\n\n### 🎯 KEYWORD TARGETING MANDATE (SEO OPTIMIZATION)\n"
             f"**Target Keyword Phrase:** \"{target_keyword}\"\n"
@@ -129,9 +156,11 @@ def get_creative_director_instructions(
             f"   - The `reasoning` field is published directly to customers on our website/app. **NEVER** mention keywords, SEO, search terms, or target phrases in `reasoning`.\n"
             f"   - Write `reasoning` naturally as an engaging explanation of why this artwork is exciting and delightful today.\n"
             f"3. **SEO Metadata Alignment**:\n"
+            f"   - `target_keyword`: MUST be set to \"{target_keyword}\".\n"
             f"   - `title`: Naturally incorporate the subject of \"{target_keyword}\" into a clean, catchy artwork title. **NEVER append raw target keywords or search phrase suffixes**.\n"
             f"   - `description`: Write a rich visual scene description centered around \"{target_keyword}\" for the UI (zero style/rendering directives!).\n"
-            f"   - `visual_tags`: MUST consist of clean, individual 1-2 word tags suitable for UI display chips. **NEVER put full multi-word search phrases or sentences**."
+            f"   - `visual_tags`: MUST consist of clean, individual 1-2 word tags suitable for UI display chips. **NEVER put full multi-word search phrases or sentences**.\n"
+            f"   - `long_description` & `meta_description`: Naturally incorporate \"{target_keyword}\" according to the SEO Copy Rules."
         )
 
     micro_style_name = kwargs.get("micro_style_name")
@@ -179,6 +208,8 @@ def get_creative_director_instructions(
             deduplication_step_block=deduplication_step_block,
             target_audience=target_audience,
         )
+        + "\n\n"
+        + SEO_COPY_RULES
         + keyword_block
         + micro_style_block
     )

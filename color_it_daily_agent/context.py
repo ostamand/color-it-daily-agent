@@ -28,6 +28,8 @@ class AgentContext:
     org_id: int = 0
     org_name: Optional[str] = None
     target_keyword: Optional[str] = None
+    long_description: Optional[str] = None
+    meta_description: Optional[str] = None
     target_audience: str = DEFAULT_TARGET_AUDIENCE
     collection_context: Optional[str] = None
     collection_description: Optional[str] = None
