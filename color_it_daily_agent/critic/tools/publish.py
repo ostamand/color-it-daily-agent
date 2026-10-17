@@ -30,6 +30,9 @@ def publish_to_firestore(
     feedback: str,
     micro_style: Optional[str] = None,
     micro_style_description: Optional[str] = None,
+    target_keyword: Optional[str] = None,
+    long_description: Optional[str] = None,
+    meta_description: Optional[str] = None,
     tool_context: Optional[ToolContext] = None
 ) -> str:
     """
@@ -52,6 +55,40 @@ def publish_to_firestore(
 
     target_col = get_coloring_page_collection_name(is_user=is_user_gen)
 
+    # Resolve SEO fields (passed via tool args or from AgentContext populated by CD)
+    resolved_long_desc = long_description or (ctx.long_description if ctx else None)
+    resolved_meta_desc = meta_description or (ctx.meta_description if ctx else None)
+
+    # target_keyword: ctx.target_keyword if set (trimmed, lowercased), otherwise CD's value
+    resolved_target_keyword = None
+    if ctx and ctx.target_keyword:
+        resolved_target_keyword = ctx.target_keyword.strip().lower()
+    elif target_keyword:
+        resolved_target_keyword = target_keyword.strip().lower()
+
+    # Validation: long_description 80–150 words, meta_description 120–170 chars
+    validated_long_desc: Optional[str] = None
+    if resolved_long_desc:
+        word_count = len(resolved_long_desc.strip().split())
+        if 80 <= word_count <= 150:
+            validated_long_desc = resolved_long_desc
+        else:
+            logger.warning(
+                f"[VALIDATION WARNING] 'long_description' has {word_count} words (expected 80–150). Writing NULL to Postgres."
+            )
+
+    validated_meta_desc: Optional[str] = None
+    if resolved_meta_desc:
+        char_count = len(resolved_meta_desc.strip())
+        if 120 <= char_count <= 170:
+            validated_meta_desc = resolved_meta_desc
+        else:
+            logger.warning(
+                f"[VALIDATION WARNING] 'meta_description' has {char_count} characters (expected 120–170). Writing NULL to Postgres."
+            )
+
+    validated_target_keyword: Optional[str] = resolved_target_keyword
+
     metadata_payload = {
         "published": False,
         "title": title,
@@ -69,7 +106,9 @@ def publish_to_firestore(
         "collection_name": collection_name,
         "user_email": user_email,
         "user_id": user_id,
-        "target_keyword": ctx.target_keyword if ctx else None,
+        "target_keyword": validated_target_keyword,
+        "long_description": validated_long_desc,
+        "meta_description": validated_meta_desc,
         "agent_version": agent_version,
         "model_name": os.environ.get("MEDIA_MODEL"),
         "prompt_model_name": os.environ.get("LLM_MODEL"),
@@ -111,7 +150,10 @@ def publish_to_firestore(
         "user_email": user_email,
         "user_id": user_id,
         "user": is_user_gen,
-        "document_id": doc_id
+        "document_id": doc_id,
+        "long_description": validated_long_desc,
+        "meta_description": validated_meta_desc,
+        "target_keyword": validated_target_keyword,
     }
 
     postgres_id = publish_to_postgres(page_data)

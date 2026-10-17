@@ -186,6 +186,28 @@ class PromptTracePlugin(BasePlugin):
             "error_message": llm_response.error_message if llm_response.error_code else None
         }
         self._record_trace(entry)
+
+        if callback_context.agent_name == "CreativeDirector" and output_text:
+            ctx = get_agent_context()
+            if ctx:
+                try:
+                    text = output_text.strip()
+                    if "```json" in text:
+                        text = text.split("```json")[1].split("```")[0].strip()
+                    elif "```" in text:
+                        text = text.split("```")[1].split("```")[0].strip()
+                    cd_data = json.loads(text)
+                    if isinstance(cd_data, dict):
+                        if cd_data.get("long_description"):
+                            ctx.long_description = cd_data.get("long_description")
+                        if cd_data.get("meta_description"):
+                            ctx.meta_description = cd_data.get("meta_description")
+                        cd_kw = cd_data.get("target_keyword")
+                        if cd_kw and not ctx.target_keyword:
+                            ctx.target_keyword = str(cd_kw).strip().lower()
+                except Exception as e:
+                    logger.debug(f"Could not parse CreativeDirector output for SEO fields: {e}")
+
         return None
 
     async def before_tool_callback(

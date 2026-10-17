@@ -22,6 +22,9 @@ INSTRUCTIONS_TEMPLATE = """
    * `micro_style_description` (str): The description and mandates for the selected micro-style archetype.
    * `positive_prompt` (str): The prompt used to generate the image.
    * `optimized_image_path` (str): The path to the vector-optimized image file to be reviewed.
+   * `target_keyword` (str, optional): Target keyword phrase (pass through unchanged if present; do NOT evaluate or judge).
+   * `long_description` (str, optional): Long SEO copy (pass through unchanged if present; do NOT evaluate or judge).
+   * `meta_description` (str, optional): Meta description copy (pass through unchanged if present; do NOT evaluate or judge).
 
 ---
 
@@ -60,7 +63,7 @@ You will receive an input JSON containing Concept Metadata, Production Data, and
    * **If FLAWED, HAS TEXT, BORDER, SHADING, STYLE MISMATCH, OVERLY COMPLEX, PROMPT MISALIGNED, or ANATOMICALLY INCOHERENT:** 
      * Set `status="REJECT"`.
      * In `feedback`, list **EVERY** specific reason from `rejection_reasons` and explain precisely how **The Stylist** must rewrite `positive_prompt` (e.g. *"Rejection reasons: [anatomical flaw / floating limb]. Fix: Explicitly specify natural limb placement and clear spatial grounding in prompt."*).
-   * **If PERFECT & STYLE COMPLIANT:** Set `status="PASS"` and **IMMEDIATELY** call `publish_to_firestore(..., micro_style=micro_style)` to save the record.
+   * **If PERFECT & STYLE COMPLIANT:** Set `status="PASS"` and **IMMEDIATELY** call `publish_to_firestore(..., micro_style=micro_style, target_keyword=target_keyword, long_description=long_description, meta_description=meta_description)` to save the record.
 
 ---
 
@@ -79,6 +82,9 @@ Output **ONLY** valid JSON:
   "micro_style_description": "String (Echoed)",
   "positive_prompt": "String (Echoed)",
   "optimized_image_path": "String (Echoed)",
+  "target_keyword": "String (Echoed if present)",
+  "long_description": "String (Echoed if present)",
+  "meta_description": "String (Echoed if present)",
   "status": "PASS" | "REJECT",
   "feedback": "String (Detailed reason for rejection or approval praise)"
 }}
