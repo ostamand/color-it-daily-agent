@@ -42,7 +42,6 @@ gcloud run deploy color-it-daily-agent \
 	--set-env-vars API_BASE_URL="${API_BASE_URL}" \
 	--set-env-vars AGENT_VERSION="$(git rev-parse HEAD)" \
 	--set-env-vars COLORITDAILY_API_KEY="${COLORITDAILY_API_KEY}" \
-
 	--set-env-vars WEBSITE_BASE_URL="${WEBSITE_BASE_URL}" \
 	--set-env-vars POSTGRES_HOST="${POSTGRES_HOST}" \
 	--set-env-vars POSTGRES_PORT="${POSTGRES_PORT}" \
