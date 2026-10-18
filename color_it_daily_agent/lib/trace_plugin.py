@@ -17,6 +17,65 @@ from color_it_daily_agent.lib.persistence import update_document, get_local_outp
 logger = logging.getLogger(__name__)
 
 
+def extract_creative_director_json(output_text: Optional[str]) -> Optional[Dict[str, Any]]:
+    """
+    Extracts and parses JSON object from Creative Director output text.
+    Tries in order:
+    1. ```json fenced block (or ``` block)
+    2. Bare JSON string
+    3. Substring from the first '{' to the last '}'
+    If all fail, logs at WARNING (not debug) and returns None.
+    """
+    if not output_text or not isinstance(output_text, str) or not output_text.strip():
+        logger.warning("Could not parse CreativeDirector output for SEO fields: output text is empty")
+        return None
+
+    text = output_text.strip()
+
+    # 1. Try ```json fenced block (or ``` block)
+    if "```json" in text:
+        try:
+            fenced = text.split("```json", 1)[1].split("```", 1)[0].strip()
+            data = json.loads(fenced)
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+    elif "```" in text:
+        try:
+            fenced = text.split("```", 1)[1].split("```", 1)[0].strip()
+            data = json.loads(fenced)
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+
+    # 2. Try bare JSON string
+    try:
+        data = json.loads(text)
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
+
+    # 3. Try substring from first '{' to last '}'
+    first_brace = text.find("{")
+    last_brace = text.rfind("}")
+    if first_brace != -1 and last_brace != -1 and first_brace < last_brace:
+        try:
+            substring = text[first_brace : last_brace + 1].strip()
+            data = json.loads(substring)
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+
+    # All failed -> log at WARNING (not debug)
+    snippet = text[:200] + ("..." if len(text) > 200 else "")
+    logger.warning("Could not parse CreativeDirector output for SEO fields: %s", snippet)
+    return None
+
+
 class PromptTracePlugin(BasePlugin):
     """
     ADK Plugin that captures all prompts, system instructions, model responses, 
@@ -186,6 +245,20 @@ class PromptTracePlugin(BasePlugin):
             "error_message": llm_response.error_message if llm_response.error_code else None
         }
         self._record_trace(entry)
+
+        if callback_context.agent_name == "CreativeDirector" and output_text:
+            ctx = get_agent_context()
+            if ctx:
+                cd_data = extract_creative_director_json(output_text)
+                if cd_data and isinstance(cd_data, dict):
+                    if cd_data.get("long_description"):
+                        ctx.long_description = cd_data.get("long_description")
+                    if cd_data.get("meta_description"):
+                        ctx.meta_description = cd_data.get("meta_description")
+                    cd_kw = cd_data.get("target_keyword")
+                    if cd_kw and not ctx.target_keyword:
+                        ctx.target_keyword = str(cd_kw).strip().lower()
+
         return None
 
     async def before_tool_callback(
