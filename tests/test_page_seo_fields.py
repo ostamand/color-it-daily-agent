@@ -3,34 +3,41 @@ import unittest
 from unittest.mock import MagicMock, patch
 from datetime import datetime
 
-# Provide mock for psycopg2 if not installed in current environment
-if "psycopg2" not in sys.modules:
-    try:
-        import psycopg2
-    except ImportError:
-        mock_psycopg2 = MagicMock()
-        class MockProgrammingError(Exception):
-            pass
-        class MockUndefinedColumn(MockProgrammingError):
-            pass
-        mock_psycopg2.ProgrammingError = MockProgrammingError
-        mock_psycopg2.errors.UndefinedColumn = MockUndefinedColumn
-        sys.modules["psycopg2"] = mock_psycopg2
-        sys.modules["psycopg2.pool"] = MagicMock()
-        sys.modules["psycopg2.errors"] = mock_psycopg2.errors
-        import psycopg2
+# Provide mocks for optional dependencies in test environment
+class MockModule(MagicMock):
+    __path__ = []
+    __spec__ = None
 
-if "dotenv" not in sys.modules:
-    try:
-        import dotenv
-    except ImportError:
-        mock_dotenv = MagicMock()
-        mock_dotenv.load_dotenv = MagicMock()
-        sys.modules["dotenv"] = mock_dotenv
+for mod in [
+    "psycopg2", "psycopg2.pool", "psycopg2.errors",
+    "dotenv", "tenacity",
+    "google", "google.cloud", "google.cloud.firestore",
+    "google.cloud.firestore_v1", "google.cloud.firestore_v1.vector",
+    "google.genai", "google.genai.types",
+    "google.adk", "google.adk.tools", "google.adk.tools.tool_context",
+    "google.adk.tools.base_tool", "google.adk.plugins",
+    "google.adk.plugins.base_plugin", "google.adk.agents",
+    "google.adk.agents.callback_context", "google.adk.models",
+]:
+    if mod not in sys.modules:
+        m = MockModule()
+        sys.modules[mod] = m
 
+class MockProgrammingError(Exception): pass
+class MockUndefinedColumn(MockProgrammingError): pass
+sys.modules["psycopg2"].ProgrammingError = MockProgrammingError
+sys.modules["psycopg2"].errors.UndefinedColumn = MockUndefinedColumn
+sys.modules["tenacity"].retry = lambda *a, **kw: (lambda f: f)
+class BasePlugin:
+    def __init__(self, name=None): self.name = name
+sys.modules["google.adk.plugins.base_plugin"].BasePlugin = BasePlugin
+
+import psycopg2
 from color_it_daily_agent.creative_director.instructions import SEO_COPY_RULES, get_creative_director_instructions
 from color_it_daily_agent.lib.postgres import add_new_page
 from color_it_daily_agent.context import AgentContext, set_agent_context
+from color_it_daily_agent.critic.tools.publish import _validate_seo_fields, publish_to_firestore
+from color_it_daily_agent.lib.trace_plugin import extract_creative_director_json
 
 
 class TestSeoCopyRules(unittest.TestCase):
@@ -115,23 +122,198 @@ class TestAddNewPageOrderSafety(unittest.TestCase):
 
 
 class TestPublishValidation(unittest.TestCase):
-    def test_validation_logic(self):
-        """Verifies word count (80-150) and character count (120-170) constraints."""
-        valid_words = "word " * 100
-        short_words = "word " * 50
-        long_words = "word " * 160
+    def test_word_count_boundaries(self):
+        """Verifies boundaries for long_description: 79 (invalid), 80 (valid), 150 (valid), 151 (invalid)."""
+        words_79 = "word " * 79
+        val_79, _, _ = _validate_seo_fields(long_description=words_79)
+        self.assertIsNone(val_79)
 
-        self.assertTrue(80 <= len(valid_words.split()) <= 150)
-        self.assertFalse(80 <= len(short_words.split()) <= 150)
-        self.assertFalse(80 <= len(long_words.split()) <= 150)
+        words_80 = "word " * 80
+        val_80, _, _ = _validate_seo_fields(long_description=words_80)
+        self.assertIsNotNone(val_80)
+        self.assertEqual(val_80, words_80.strip())
 
-        valid_chars = "a" * 150
-        short_chars = "a" * 100
-        long_chars = "a" * 180
+        words_150 = "word " * 150
+        val_150, _, _ = _validate_seo_fields(long_description=words_150)
+        self.assertIsNotNone(val_150)
+        self.assertEqual(val_150, words_150.strip())
 
-        self.assertTrue(120 <= len(valid_chars) <= 170)
-        self.assertFalse(120 <= len(short_chars) <= 170)
-        self.assertFalse(120 <= len(long_chars) <= 170)
+        words_151 = "word " * 151
+        val_151, _, _ = _validate_seo_fields(long_description=words_151)
+        self.assertIsNone(val_151)
+
+    def test_char_count_boundaries(self):
+        """Verifies boundaries for meta_description: 119 (invalid), 120 (valid), 170 (valid), 171 (invalid)."""
+        chars_119 = "a" * 119
+        _, val_119, _ = _validate_seo_fields(meta_description=chars_119)
+        self.assertIsNone(val_119)
+
+        chars_120 = "a" * 120
+        _, val_120, _ = _validate_seo_fields(meta_description=chars_120)
+        self.assertIsNotNone(val_120)
+        self.assertEqual(val_120, chars_120)
+
+        chars_170 = "a" * 170
+        _, val_170, _ = _validate_seo_fields(meta_description=chars_170)
+        self.assertIsNotNone(val_170)
+        self.assertEqual(val_170, chars_170)
+
+        chars_171 = "a" * 171
+        _, val_171, _ = _validate_seo_fields(meta_description=chars_171)
+        self.assertIsNone(val_171)
+
+    def test_none_and_empty_input(self):
+        """Verifies None, empty string, and whitespace-only inputs return None without raising."""
+        val_long, val_meta, val_kw = _validate_seo_fields(None, None, None)
+        self.assertIsNone(val_long)
+        self.assertIsNone(val_meta)
+        self.assertIsNone(val_kw)
+
+        val_long, val_meta, val_kw = _validate_seo_fields("", "", "")
+        self.assertIsNone(val_long)
+        self.assertIsNone(val_meta)
+        self.assertIsNone(val_kw)
+
+        val_long, val_meta, val_kw = _validate_seo_fields("   ", "   ", "   ")
+        self.assertIsNone(val_long)
+        self.assertIsNone(val_meta)
+        self.assertIsNone(val_kw)
+
+    def test_target_keyword_normalization(self):
+        """Verifies target_keyword is stripped and lowercased."""
+        _, _, kw = _validate_seo_fields(target_keyword="  Cute Dinosaur Coloring Page  ")
+        self.assertEqual(kw, "cute dinosaur coloring page")
+
+    def test_never_raises_on_invalid_types(self):
+        """Verifies unexpected input types do not raise exceptions."""
+        val_long, val_meta, val_kw = _validate_seo_fields(long_description=12345, meta_description=True)
+        self.assertIsNone(val_long)
+        self.assertIsNone(val_meta)
+
+
+class TestExtractCreativeDirectorJson(unittest.TestCase):
+    def test_case_1_fenced_json_block(self):
+        """Case 1: JSON wrapped in ```json ... ``` code fence."""
+        raw = """Here is my proposal for the page:
+```json
+{
+  "long_description": "A delightful coloring page featuring a smiling dinosaur.",
+  "meta_description": "Free printable dinosaur coloring page for kids of all ages.",
+  "target_keyword": "dinosaur coloring page"
+}
+```
+Hope you like it!"""
+        result = extract_creative_director_json(raw)
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result.get("target_keyword"), "dinosaur coloring page")
+        self.assertEqual(result.get("long_description"), "A delightful coloring page featuring a smiling dinosaur.")
+
+    def test_case_2_bare_json(self):
+        """Case 2: Bare JSON string with no fences or conversational filler."""
+        raw = '{"long_description": "Bare json description", "meta_description": "Bare json meta", "target_keyword": "bare json kw"}'
+        result = extract_creative_director_json(raw)
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result.get("target_keyword"), "bare json kw")
+
+    def test_case_3_substring_braces(self):
+        """Case 3: JSON inside conversational text without fences (extracted by first { to last })."""
+        raw = 'Some text before {"long_description": "Substring desc", "meta_description": "Substring meta", "target_keyword": "substring kw"} some text after.'
+        result = extract_creative_director_json(raw)
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result.get("target_keyword"), "substring kw")
+        self.assertEqual(result.get("long_description"), "Substring desc")
+
+    def test_case_4_failure_logs_warning_and_returns_none(self):
+        """Case 4: Failed parse logs at WARNING and returns None."""
+        invalid_raw = "This response contains no valid JSON object anywhere."
+        with self.assertLogs("color_it_daily_agent.lib.trace_plugin", level="WARNING") as cm:
+            result = extract_creative_director_json(invalid_raw)
+        self.assertIsNone(result)
+        self.assertTrue(any("Could not parse CreativeDirector output" in log for log in cm.output))
+
+
+class TestPublishSeoPrecedence(unittest.TestCase):
+    def test_cd_context_wins_over_critic_tool_args(self):
+        """Creative Director's saved context values win over Critic's tool args."""
+        ctx = AgentContext(
+            document_id="test-doc-1",
+            current_date="2026-10-18",
+            collection_name="coloring_pages",
+            no_persist=True,
+            agent_version="test-1.0",
+            long_description="word " * 100,
+            meta_description="m" * 140,
+            target_keyword="cd target keyword",
+        )
+        set_agent_context(ctx)
+
+        critic_long = "critic " * 100
+        critic_meta = "c" * 140
+        critic_kw = "critic target keyword"
+
+        with patch("color_it_daily_agent.critic.tools.publish.update_document") as mock_update:
+            publish_to_firestore(
+                title="Test Page",
+                reasoning="Test reasoning",
+                description="Test description",
+                visual_tags=["test"],
+                mood="happy",
+                target_audience="kids",
+                positive_prompt="test prompt",
+                optimized_image_path="test.png",
+                status="approved",
+                feedback="looks good",
+                long_description=critic_long,
+                meta_description=critic_meta,
+                target_keyword=critic_kw,
+            )
+
+            mock_update.assert_called_once()
+            payload = mock_update.call_args[0][1]
+            self.assertEqual(payload["long_description"], ("word " * 100).strip())
+            self.assertEqual(payload["meta_description"], "m" * 140)
+            self.assertEqual(payload["target_keyword"], "cd target keyword")
+
+    def test_critic_tool_args_fallback_when_context_empty(self):
+        """Critic's tool args are used as fallback when Creative Director context values are missing or empty."""
+        ctx = AgentContext(
+            document_id="test-doc-2",
+            current_date="2026-10-18",
+            collection_name="coloring_pages",
+            no_persist=True,
+            agent_version="test-1.0",
+            long_description=None,
+            meta_description="",
+            target_keyword=None,
+        )
+        set_agent_context(ctx)
+
+        critic_long = "critic " * 100
+        critic_meta = "c" * 140
+        critic_kw = "critic target keyword"
+
+        with patch("color_it_daily_agent.critic.tools.publish.update_document") as mock_update:
+            publish_to_firestore(
+                title="Test Page",
+                reasoning="Test reasoning",
+                description="Test description",
+                visual_tags=["test"],
+                mood="happy",
+                target_audience="kids",
+                positive_prompt="test prompt",
+                optimized_image_path="test.png",
+                status="approved",
+                feedback="looks good",
+                long_description=critic_long,
+                meta_description=critic_meta,
+                target_keyword=critic_kw,
+            )
+
+            mock_update.assert_called_once()
+            payload = mock_update.call_args[0][1]
+            self.assertEqual(payload["long_description"], critic_long.strip())
+            self.assertEqual(payload["meta_description"], critic_meta)
+            self.assertEqual(payload["target_keyword"], "critic target keyword")
 
 
 if __name__ == "__main__":

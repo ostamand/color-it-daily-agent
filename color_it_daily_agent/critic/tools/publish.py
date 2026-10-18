@@ -17,6 +17,48 @@ from ...lib.version import get_agent_version
 
 logger = logging.getLogger(__name__)
 
+def _validate_seo_fields(
+    long_description: Optional[str] = None,
+    meta_description: Optional[str] = None,
+    target_keyword: Optional[str] = None,
+) -> tuple[Optional[str], Optional[str], Optional[str]]:
+    """
+    Validates SEO fields:
+    - long_description: 80–150 words. If invalid, logs a warning and returns None.
+    - meta_description: 120–170 characters. If invalid, logs a warning and returns None.
+    - target_keyword: lowercased and stripped if present.
+    Never raises an exception; never blocks publish.
+    """
+    try:
+        validated_long_desc: Optional[str] = None
+        if long_description and isinstance(long_description, str) and long_description.strip():
+            word_count = len(long_description.strip().split())
+            if 80 <= word_count <= 150:
+                validated_long_desc = long_description.strip()
+            else:
+                logger.warning(
+                    f"[VALIDATION WARNING] 'long_description' has {word_count} words (expected 80–150). Writing NULL to Postgres."
+                )
+
+        validated_meta_desc: Optional[str] = None
+        if meta_description and isinstance(meta_description, str) and meta_description.strip():
+            char_count = len(meta_description.strip())
+            if 120 <= char_count <= 170:
+                validated_meta_desc = meta_description.strip()
+            else:
+                logger.warning(
+                    f"[VALIDATION WARNING] 'meta_description' has {char_count} characters (expected 120–170). Writing NULL to Postgres."
+                )
+
+        validated_target_keyword: Optional[str] = None
+        if target_keyword and isinstance(target_keyword, str) and target_keyword.strip():
+            validated_target_keyword = target_keyword.strip().lower()
+
+        return validated_long_desc, validated_meta_desc, validated_target_keyword
+    except Exception as e:
+        logger.warning(f"[VALIDATION WARNING] Error validating SEO fields: {e}. Writing NULL to Postgres.")
+        return None, None, None
+
 def publish_to_firestore(
     title: str,
     reasoning: str,
@@ -55,39 +97,22 @@ def publish_to_firestore(
 
     target_col = get_coloring_page_collection_name(is_user=is_user_gen)
 
-    # Resolve SEO fields (passed via tool args or from AgentContext populated by CD)
-    resolved_long_desc = long_description or (ctx.long_description if ctx else None)
-    resolved_meta_desc = meta_description or (ctx.meta_description if ctx else None)
+    # Resolve SEO fields: prefer Creative Director's saved context values; use Critic's tool args only as fallback when context is missing/empty
+    ctx_long = ctx.long_description.strip() if ctx and getattr(ctx, "long_description", None) and isinstance(ctx.long_description, str) and ctx.long_description.strip() else None
+    arg_long = long_description.strip() if long_description and isinstance(long_description, str) and long_description.strip() else None
+    raw_long_desc = ctx_long or arg_long
 
-    # target_keyword: ctx.target_keyword if set (trimmed, lowercased), otherwise CD's value
-    resolved_target_keyword = None
-    if ctx and ctx.target_keyword:
-        resolved_target_keyword = ctx.target_keyword.strip().lower()
-    elif target_keyword:
-        resolved_target_keyword = target_keyword.strip().lower()
+    ctx_meta = ctx.meta_description.strip() if ctx and getattr(ctx, "meta_description", None) and isinstance(ctx.meta_description, str) and ctx.meta_description.strip() else None
+    arg_meta = meta_description.strip() if meta_description and isinstance(meta_description, str) and meta_description.strip() else None
+    raw_meta_desc = ctx_meta or arg_meta
 
-    # Validation: long_description 80–150 words, meta_description 120–170 chars
-    validated_long_desc: Optional[str] = None
-    if resolved_long_desc:
-        word_count = len(resolved_long_desc.strip().split())
-        if 80 <= word_count <= 150:
-            validated_long_desc = resolved_long_desc
-        else:
-            logger.warning(
-                f"[VALIDATION WARNING] 'long_description' has {word_count} words (expected 80–150). Writing NULL to Postgres."
-            )
+    ctx_kw = ctx.target_keyword.strip() if ctx and getattr(ctx, "target_keyword", None) and isinstance(ctx.target_keyword, str) and ctx.target_keyword.strip() else None
+    arg_kw = target_keyword.strip() if target_keyword and isinstance(target_keyword, str) and target_keyword.strip() else None
+    raw_target_keyword = ctx_kw or arg_kw
 
-    validated_meta_desc: Optional[str] = None
-    if resolved_meta_desc:
-        char_count = len(resolved_meta_desc.strip())
-        if 120 <= char_count <= 170:
-            validated_meta_desc = resolved_meta_desc
-        else:
-            logger.warning(
-                f"[VALIDATION WARNING] 'meta_description' has {char_count} characters (expected 120–170). Writing NULL to Postgres."
-            )
-
-    validated_target_keyword: Optional[str] = resolved_target_keyword
+    validated_long_desc, validated_meta_desc, validated_target_keyword = _validate_seo_fields(
+        raw_long_desc, raw_meta_desc, raw_target_keyword
+    )
 
     metadata_payload = {
         "published": False,
