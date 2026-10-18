@@ -411,6 +411,7 @@ def add_new_page(cursor, page_data: Dict[str, Any]) -> int:
     try:
         cursor.execute("SAVEPOINT seo_insert")
         cursor.execute(insert_query_with_seo, values_with_seo)
+        page_id = cursor.fetchone()[0]
         cursor.execute("RELEASE SAVEPOINT seo_insert")
     except Exception as e:
         pgcode = getattr(e, "pgcode", None)
@@ -431,10 +432,9 @@ def add_new_page(cursor, page_data: Dict[str, Any]) -> int:
             except Exception:
                 pass
             cursor.execute(insert_query_without_seo, base_values)
+            page_id = cursor.fetchone()[0]
         else:
             raise
-    
-    page_id = cursor.fetchone()[0]
     
     tag_list = ensure_tags_exist(cursor, tags)
     for _, tag_id in tag_list:

@@ -62,7 +62,15 @@ class TestSeoCopyRules(unittest.TestCase):
 class TestAddNewPageOrderSafety(unittest.TestCase):
     def setUp(self):
         self.mock_cursor = MagicMock()
-        self.mock_cursor.fetchone.return_value = (42,)
+        def execute_side_effect(query, params=None):
+            if "RETURNING" in str(query):
+                self.mock_cursor.fetchone.return_value = (42,)
+                self.mock_cursor.fetchone.side_effect = None
+            else:
+                self.mock_cursor.fetchone.return_value = None
+                self.mock_cursor.fetchone.side_effect = psycopg2.ProgrammingError("no results to fetch")
+            return None
+        self.mock_cursor.execute.side_effect = execute_side_effect
 
     def test_add_new_page_with_seo_columns_success(self):
         """When columns exist in PostgreSQL, INSERT with SEO columns succeeds."""
@@ -110,6 +118,12 @@ class TestAddNewPageOrderSafety(unittest.TestCase):
             call_count += 1
             if "long_description" in str(query):
                 raise err
+            if "RETURNING" in str(query):
+                self.mock_cursor.fetchone.return_value = (42,)
+                self.mock_cursor.fetchone.side_effect = None
+            else:
+                self.mock_cursor.fetchone.return_value = None
+                self.mock_cursor.fetchone.side_effect = psycopg2.ProgrammingError("no results to fetch")
             return None
 
         self.mock_cursor.execute.side_effect = fake_execute
