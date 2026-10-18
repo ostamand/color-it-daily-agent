@@ -2,9 +2,8 @@ holidays
 google-cloud-firestore
 google-cloud-storage
 google-genai
-google-adk
+google-adk[db]>=2.12.0,<3
 python-dotenv
 cairosvg
 Pillow
-SQLAlchemy
 psycopg2-binary
