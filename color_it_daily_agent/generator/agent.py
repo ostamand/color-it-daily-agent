@@ -2,20 +2,19 @@ import json
 import asyncio
 
 from google.adk.agents import LlmAgent, SequentialAgent
-from google.adk.models import Gemini
 from google.adk.runners import InMemoryRunner
 
 
 from .instructions import INSTRUCTIONS_V1
 from .tools.generate import generate_image
 from .tools.optimize import optimize_image
-from ..app_configs import configs
+from ..lib.models import get_default_llm_model
 
 # Define the Generator agent
 generator = LlmAgent(
     name="Generator",
     instruction=INSTRUCTIONS_V1,
-    model=Gemini(model=configs.llm_model),
+    model=get_default_llm_model(),
     tools=[generate_image, optimize_image],
 )
 

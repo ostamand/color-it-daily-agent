@@ -2,16 +2,15 @@ import json
 import asyncio
 
 from google.adk.agents import LlmAgent, SequentialAgent
-from google.adk.models import Gemini
 from google.adk.runners import InMemoryRunner
 
 from .instructions import get_stylist_instructions
-from ..app_configs import configs
+from ..lib.models import get_default_llm_model
 
 stylist = LlmAgent(
     name="Stylist",
     instruction=get_stylist_instructions,
-    model=Gemini(model=configs.llm_model),  
+    model=get_default_llm_model(),  
 )
 
 
