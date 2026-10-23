@@ -2,19 +2,18 @@ import json
 import asyncio
 
 from google.adk.agents import LlmAgent
-from google.adk.models import Gemini
 from google.adk.runners import InMemoryRunner
 
 from .instructions import get_critic_instructions
 from .tools.download import download_image
 from .tools.inspect import inspect_image_visually
 from .tools.publish import publish_to_firestore
-from ..app_configs import configs
+from ..lib.models import get_default_llm_model
 
 critic = LlmAgent(
     name="Critic",
     instruction=get_critic_instructions,
-    model=Gemini(model=configs.llm_model),
+    model=get_default_llm_model(),
     tools=[download_image, inspect_image_visually, publish_to_firestore]
 )
 

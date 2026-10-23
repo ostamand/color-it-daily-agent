@@ -8,6 +8,7 @@ from google.adk.cli.fast_api import get_fast_api_app
 
 from color_it_daily_agent.pipeline import prepare_agent_execution
 from color_it_daily_agent.lib.persistence import mark_document_failed, get_document_status
+from color_it_daily_agent.lib.retry_utils import is_429_error
 
 logger = logging.getLogger("color_it_daily_agent")
 
@@ -95,7 +96,7 @@ async def process_agent_input_middleware(request: Request, call_next):
         return response
     except Exception as exc:
         err_str = str(exc)
-        is_429 = "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "QUOTA" in err_str.upper()
+        is_429 = is_429_error(exc)
         if ctx:
             mark_document_failed(ctx.document_id, err_str, ctx.no_persist)
         
