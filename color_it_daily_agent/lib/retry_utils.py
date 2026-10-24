@@ -6,6 +6,7 @@ from tenacity import (
     wait_exponential,
     retry_if_exception,
     before_sleep_log,
+    RetryCallState,
 )
 
 logger = logging.getLogger(__name__)
@@ -95,10 +96,49 @@ def is_rate_limit_or_transient_error(exception: Exception) -> bool:
     return False
 
 
+def extract_error_code(exc: Optional[BaseException]) -> Optional[Any]:
+    """
+    Extracts HTTP status code, numeric error code, or exception type name
+    from an exception or its causes for structured log reporting.
+    """
+    if exc is None:
+        return None
+    visited = set()
+    current: Optional[BaseException] = exc
+    while current is not None and id(current) not in visited:
+        visited.add(id(current))
+        code = getattr(current, "code", None) or getattr(current, "status_code", None)
+        if code:
+            return code
+        type_name = type(current).__name__
+        if type_name in ("ResourceExhausted", "TooManyRequests", "_ResourceExhaustedError"):
+            return 429
+        current = current.__cause__ or current.__context__
+    if "RESOURCE_EXHAUSTED" in str(exc):
+        return 429
+    return type(exc).__name__
+
+
+def log_model_retry(retry_state: RetryCallState) -> None:
+    """
+    Logs model retry attempts at WARNING level with attempt number and error code
+    so long runs and retry backoffs can be explained from logs.
+    """
+    exc = retry_state.outcome.exception() if retry_state.outcome else None
+    attempt = retry_state.attempt_number
+    sleep_sec = f"{retry_state.next_action.sleep:.1f}" if retry_state.next_action else "0"
+    code = extract_error_code(exc)
+    fn_name = getattr(retry_state.fn, "__name__", str(retry_state.fn))
+    logger.warning(
+        f"⚠️ Model retry attempt {attempt} for '{fn_name}' after error (code: {code}): {exc}. "
+        f"Backing off for {sleep_sec}s..."
+    )
+
+
 retry_genai_call = retry(
     retry=retry_if_exception(is_rate_limit_or_transient_error),
     stop=stop_after_attempt(5),
     wait=wait_exponential(multiplier=5, min=10, max=120),
-    before_sleep=before_sleep_log(logger, logging.WARNING),
+    before_sleep=log_model_retry,
     reraise=True,
 )
